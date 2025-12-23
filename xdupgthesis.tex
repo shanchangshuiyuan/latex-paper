@@ -1,0 +1,49 @@
+
+\documentclass[mf=tgtm, mprof]{xdupgthesis} 
+
+\usepackage{verbatim}
+\usepackage{pifont}
+\usepackage{graphicx}
+\usepackage{tocloft}
+
+% 新增 start
+\usepackage{natbib}
+\setcitestyle{numbers,square,super}
+% end
+
+\renewcommand{\cftdot}{.}
+\renewcommand{\cftdotsep}{1.4}
+\newcommand{\circletext}[1]{%
+	\raisebox{0.2ex}{\textcircled{\scriptsize#1}}%
+%\raisebox{0.2ex}{\textcircled{\scriptsize#1}}\hspace{0.5em}%
+}
+%\usepackage{xeCJK}
+
+%\usepackage{fancyhdr}
+
+%\pagestyle{fancy}
+%\fancyhf{} % 清除默认的页眉页脚设置
+%\fancyhead[C]{\leftmark} % 在页眉左侧显示当前章节名
+%\fancyfoot[C]{\thepage} % 在页脚中间显示页码
+
+
+\addtolength{\cftfignumwidth}{1em}
+\addtolength{\cfttabnumwidth}{1em}
+\begin{document}
+\begin{sloppypar}
+\XDUfrontmatter
+\include{chapters/abstract}
+\XDUmainmatter
+\include{chapters/firstChapter} 
+\include{chapters/secondChapter} 
+\include{chapters/thirdChapter} 
+\include{chapters/fourChapter} 
+\include{chapters/fiveChapter} 
+\include{chapters/sixChapter} 
+
+\XDUbackmatter
+\include{chapters/reference}
+\include{chapters/thanks}
+\include{chapters/resume}
+\end{sloppypar}
+\end{document}

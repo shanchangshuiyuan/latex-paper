@@ -411,51 +411,130 @@ K(e, t, s) = \max \left( k_{min}, \, \min \left( 1.0, \, \frac{k(t) \cdot S_{tot
 在单个渲染通道中，通过几何着色器或实例化技术，将场景几何体同时渲染到多个不同分辨率的渲染目标中，确保几何一致性。
 此外结合时序因子 \(k(t)\)，动态调整模型网格与纹理的LOD偏置。在扫视与恢复初期，即使在全分辨率区域，也可选择更粗糙的LOD，因为高频几何与纹理细节在当前感知状态下不可见。
 
-（5）中央凹区域的动态定义与多分辨率渲染管线集成
-
-动态降采样渲染后的低分辨率图像需经过高质量重建才能与全分辨率区域无缝合成。本算法采用感知优化的上采样与混合流程，主要包括以下三个核心环节：
-
-基于边缘感知的空间上采样：
-对每个降分辨率渲染的区域，使用自适应上采样滤波器进行重建。滤波器系数不仅考虑像素的邻近关系，还结合由低分辨率图像估计的局部边缘方向与对比度。我们采用改进的方向性双三次卷积插值：首先，通过分析低分辨率图像的梯度结构张量，估计每个待插值点处的主导边缘方向；然后，沿边缘方向进行一维插值，避免跨越边缘的插值导致的模糊。此过程可表达为：
-\begin{equation}
-I_{high}(x) = \sum_{p \in N(x)} w(p, x; \theta(x), \sigma(x)) \cdot I_{low}(p)
-\label{eq:directional_upsampling}
-\end{equation}
-其中 \(w(\cdot)\) 为依赖于局部边缘方向 \(\theta(x)\) 和边缘强度 \(\sigma(x)\) 的加权函数。
-
-时域累积与抗闪烁：
-动态分辨率切换可能引起帧间亮度或细节的快速变化，表现为闪烁。为抑制此类时域伪影，算法在像素着色器后引入一个时域累积缓冲区。对于当前帧上采样后的图像 \(I_t\)，与上一帧重建后的最终图像 \(J_{t-1}\) 进行基于运动向量的混合：
-\begin{equation}
-J_t(x) = (1 - \beta) \cdot I_t(x) + \beta \cdot J_{t-1}(x + v(x))
-\label{eq:temporal_accumulation}
-\end{equation}
-其中\(\beta\) 为混合权重，可动态调整：在稳定注视期或场景静态时，\(\beta\) 较高，以最大化时域稳定性；在扫视或场景快速变化时，\(\beta\) 迅速降低，以避免重影。 \(v(x)\) 为运动向量由运动缓冲区提供。
-
-区域边界的感知无缝混合：
-不同分辨率区域之间必然存在边界。直接拼接会导致明显的接缝或光晕。本算法实施多尺度边缘感知混合。首先，在边界两侧各定义一个过渡带，且过渡带宽度随两侧分辨率差异增大而增加。在过渡带内，每个像素的最终颜色由高、低分辨率图像在该像素处的重建值按权重混合而成：
-\begin{equation}
-C_{final}(x) = \lambda(x) \cdot C_{high}(x) + (1 - \lambda(x)) \cdot C_{low}(x)
-\label{eq:boundary_blending}
-\end{equation}
-其中，\(\lambda(x)\)为感知显著性调制的混合权重函数，本算法引入了感知显著性调制：
-在包含高强度边缘的区域，\(\lambda(x)\) 向高分辨率侧更快过渡，以保持边缘锐度。
-在纹理平坦或低频区域，\(\lambda(x)\) 平缓过渡，从而在视觉上消除渲染区域的接合感。
-
-局部边缘强度通过分析高分辨率侧图像的高频分量来估计。
-
-\subsubsection*{算法总结与创新点}
-综上所述，本章节提出的感知自适应动态分辨率渲染算法，构建了一个从\textbf{生理信号感知}到\textbf{图形渲染决策}的完整闭环系统。其核心创新体现在以下几个方面：
-
-\begin{enumerate}
-    \item \textbf{时空联合优化范式}：首次将眼跳导致的时序感知窗口（扫视抑制期与恢复期）系统性地纳入实时渲染资源调度决策，突破了传统注视点渲染仅优化空间域的局限。
-    \item \textbf{基于第一性原理的映射函数}：分辨率缩放因子的推导直接源于castleCSF-TS感知模型对视觉敏感度的量化预测，建立了从视觉生理参数到图形学参数的可解释映射，而非依赖经验参数。
-    \item \textbf{连续平滑的适应性}：通过惯性滤波与感知引导的动态区域定义，确保分辨率在时空两个维度的变化都是连续且平滑的，从根本上避免了因离散切换产生的视觉不适。
-    \item \textbf{与渲染管线的深度异构集成}：算法设计充分考虑了现代GPU渲染管线的特性，通过分层渲染、多视口渲染、时域累积等技术的结合，在实现复杂逻辑的同时保持了较高的执行效率。
-    \item \textbf{系统级的鲁棒性设计}：通过性能监控与自适应回退机制，确保了算法不仅在理想实验环境下有效，也能在实际应用中应对信号噪声、复杂场景和硬件性能波动等挑战。
-\end{enumerate}
 
 该算法通过将渲染计算资源的消耗曲线与人类视觉系统的瞬时感知能力曲线进行精细对齐，为在高性能需求与有限计算资源的矛盾中实现突破——特别是在移动VR/AR设备上实现兼具高沉浸感与高流畅度的视觉体验——提供了一条坚实且可工程化的技术路径。后续章节将通过系统的实验验证，定量评估该算法在渲染效率提升与视觉质量保持两方面的综合性能。
 
+
+\subsection{图像重建、合成与伪影抑制技术}
+在感知自适应的动态分辨率渲染算法中，中央凹区域根据眼动状态动态调整渲染分辨率。当系统判定当前处于扫视期或恢复期时，中央凹区域的渲染分辨率会被显著降低。该动态降采样策略虽然在计算资源节省方面效果显著，但在显示设备上呈现时，必须将低分辨率图像重建为与外围区域相同分辨率的图像，才能实现无缝的视觉体验。为此，本文设计了多层次的图像重建、合成与伪影抑制技术，确保优化过程在视觉上的完全透明性，主要包括以下三个核心环节：
+
+（1）基于边缘感知的空间上采样
+
+传统的上采样方法，如双线性插值或双三次卷积，虽具有较高的计算效率，但存在固有的局限性：它们在插值过程中对所有方向的相邻像素进行均匀加权，而未考虑图像的局部结构特征。这种均匀插值策略在边缘区域尤其不利，因为跨越边缘的像素混合会模糊重要的边界信息，导致物体轮廓失真、纹理细节丢失，并在中央凹与外周区域的结合部产生可见的不连续现象。
+
+为克服上述限制，本文提出一种基于边缘感知的空间上采样算法。该算法通过分析图像的局部结构特征，自适应地调整插值权重，使插值过程顺应图像的几何结构，从而避免跨越显著性边缘。具体步骤如下：
+首先，对低分辨率图像 \(I_{low}\) 进行局部结构分析。在位置 \(p = (x, y)\) 处，计算其梯度向量：
+\begin{equation}
+\nabla I_{low}(p) = \left( \frac{\partial I_{low}}{\partial x}, \frac{\partial I_{low}}{\partial y} \right)
+\end{equation}
+
+进而定义局部结构张量为梯度向量的外积：
+\begin{equation}
+S(p) = \nabla I_{low}(p) \cdot \nabla I_{low}(p)^T = \begin{pmatrix}
+g_x^2 & g_x g_y \\
+g_x g_y & g_y^2
+\end{pmatrix}
+\end{equation}
+其中 \(g_x = \frac{\partial I_{low}}{\partial x}\), \(g_y = \frac{\partial I_{low}}{\partial y}\)。
+对 \(S(p)\) 进行特征值分解，可得到局部结构的主要方向和强度：
+\begin{equation}
+S(p) = \lambda_1 \mathbf{v}_1 \mathbf{v}_1^T + \lambda_2 \mathbf{v}_2 \mathbf{v}_2^T
+\end{equation}
+其中 \(\lambda_1 \geq \lambda_2 \geq 0\) 是特征值，\(\mathbf{v}_1\) 和 \(\mathbf{v}_2\) 是相应的特征向量。\(\mathbf{v}_1\) 对应于局部梯度变化最大的方向即垂直于边缘的方向，\(\mathbf{v}_2\) 对应于变化最小的方向即沿着边缘的方向。
+
+进一步定义局部各向异性系数为：
+\begin{equation}
+c(p) = \frac{\lambda_1 - \lambda_2}{\lambda_1 + \lambda_2 + \epsilon}
+\end{equation}
+其中 \(\epsilon\) 是一个小的正常数，防止除零错误。\(c(p) \in [0, 1]\)，值越大表示局部结构越各向异性即边缘越强，值越小表示局部结构越各向同性即为平坦区域。
+
+基于上述分析，本文设计了方向自适应插值滤波器：对于待插值点 \(q\)，设低分辨率图像中的相邻像素点为 \(p_i \in N(q)\)，其中 \(N(q)\) 是 \(q\) 在低分辨率图像中的邻域通常为4×4的网格。将传统的各向同性核改造为各向异性核，使其在边缘方向上具有较长支撑，在垂直边缘方向上则收缩支撑范围：
+\begin{equation}
+K_{\text{adaptive}}(p_i, q) = K_{\text{bicubic}}\left( \frac{\|p_i - q\|_{\mathbf{A}(q)}}{\sigma} \right)
+\end{equation}
+其中 \(\| \cdot \|_{\mathbf{A}(q)}\) 是由局部结构张量 \(\mathbf{A}(q)\) 定义的各向异性距离度量：
+\begin{equation}
+\mathbf{A}(q) = \begin{pmatrix}
+1 + \alpha c(q) \cos^2\theta(q) & \alpha c(q) \sin\theta(q)\cos\theta(q) \\
+\alpha c(q) \sin\theta(q)\cos\theta(q) & 1 + \alpha c(q) \sin^2\theta(q)
+\end{pmatrix}
+\end{equation}
+其中，
+\(\theta(q)\) 是局部边缘方向，即特征向量 \(\mathbf{v}_2(q)\) 的方向；
+\(c(q)\) 是各向异性系数；
+\(\alpha > 0\) 是控制各向异性程度的参数；
+\(\sigma\) 是尺度参数。
+
+各向异性距离的具体形式为：
+\begin{equation}
+\|p_i - q\|_{\mathbf{A}(q)} = \sqrt{(p_i - q)^T \mathbf{A}(q) (p_i - q)}
+\end{equation}
+该设计使得在强边缘附近，插值核沿边缘方向伸展、沿法向压缩，从而保证插值主要利用边缘同侧的像素，避免跨边缘混合。
+
+高分辨率图像中点 \(q\) 的插值结果由下式计算：
+\begin{equation}
+I_{high}(q) = \frac{\sum_{p_i \in N(q)} K_{\text{adaptive}}(p_i, q) \cdot I_{low}(p_i)}{\sum_{p_i \in N(q)} K_{\text{adaptive}}(p_i, q)}
+\end{equation}
+
+为提升算法实时性，采用多尺度边缘检测策略：
+\begin{equation}
+E_{\text{multi}}(p) = \sum_{k=1}^{K} w_k \cdot \|\nabla (G_{\sigma_k} * I_{low})(p)\|
+\end{equation}
+其中 \(G_{\sigma_k}\) 是标准差为 \(\sigma_k\) 的高斯滤波器，\(w_k\) 是权重系数。
+
+（2）时域累积与抗闪烁
+
+动态分辨率渲染中，中央凹区域的分辨率随时间动态变化，可能导致帧间亮度、对比度或细节的突然变化，表现为视觉上的"闪烁"效应。为抑制此类伪影，算法在像素着色器后引入一个时域累积缓冲区。
+
+设当前帧上采样后的中央凹图像为 \(I_t\)，上一帧累积后的最终图像为 \(J_{t-1}\)，当前帧的输出图像 \(J_t\) 通过加权混合得到：
+\begin{equation}
+J_t(x) = (1 - \beta(x)) \cdot I_t(x) + \beta(x) \cdot J_{t-1}(x + v(x))
+\end{equation}
+其中\(\beta\) 为混合权重，可动态调整：在稳定注视期或场景静态时，\(\beta\) 较高，以最大化时域稳定性；在扫视或场景快速变化时，\(\beta\) 迅速降低，以避免重影。 \(v(x)\) 为从帧 \(t-1\) 到帧 \(t\) 的运动向量，可通过基于光流的估计算法获得。
+
+（3）区域边界的感知无缝混合
+
+在注视点渲染中，中央凹高分辨率区域与外围低分辨率区域之间存在明显的分辨率差异，若对此二者进行直接拼接，将在接合部产生明显的视觉伪影如可见接缝、光晕效应和细节不匹配。为消除这些伪影并实现视觉上平滑自然的过渡，本文提出一种多尺度边缘感知混合技术。
+
+设高分辨率区域图像为 \(I_{high}\)，低分辨率区域上采样后的图像为 \(I_{low}^{\text{upsampled}}\)，在预设的边界过渡带 \(\Omega_{\text{blend}}\) 内，生成最终的无缝融合图像 \(I_{\text{final}}\)，其融合公式定义为：
+\begin{equation}
+I_{\text{final}}(x) = \lambda(x) \cdot I_{high}(x) + (1 - \lambda(x)) \cdot I_{low}^{\text{upsampled}}(x)
+\end{equation}
+其中 \(\lambda(x) \in [0, 1]\) 是混合权重函数，基于多个感知因素设计：
+几何距离权重\(d(x)\)、边缘显著性权重\(e(x)\)和频率一致性权重\(f(x)\)。具体定义如下：
+\begin{equation}
+d(x) = \frac{\|x - x_{\text{boundary}}\|}{w_{\text{blend}}}
+\end{equation}
+\begin{equation}
+e(x) = \frac{\|\nabla I_{high}(x)\|}{\max_{y \in \Omega_{\text{blend}}} \|\nabla I_{high}(y)\|}
+\end{equation}
+\begin{equation}
+f(x) = \exp\left( -\frac{|F_{high}(x) - F_{low}(x)|^2}{2\sigma_f^2} \right)
+\end{equation}
+其中，\(x_{\text{boundary}}\) 是最近边界点的位置，\(w_{\text{blend}}\) 是混合带宽度； \(F_{high}(x)\) 和 \(F_{low}(x)\) 分别是 \(I_{high}\) 和 \(I_{low}^{\text{upsampled}}\) 在位置 \(x\) 处的局部频率估计，通过小波变换获得。
+
+综合权重函数由上述分量组合而成：
+\begin{equation}
+\lambda(x) = d(x)^{\alpha} \cdot (1 + \beta \cdot e(x)) \cdot f(x)^{\gamma}
+\end{equation}
+
+为确保权重在过渡带内平滑，归一化到 \([0, 1]\) 区间：
+\begin{equation}
+\lambda_{\text{final}}(x) = \frac{\lambda(x) - \min_{y \in \Omega_{\text{blend}}} \lambda(y)}{\max_{y \in \Omega_{\text{blend}}} \lambda(y) - \min_{y \in \Omega_{\text{blend}}} \lambda(y)}
+\end{equation}
+其中参数 \(\alpha, \beta, \gamma\) 控制各因素的相对重要性。
+
+为进一步优化过渡质量并避免在不同尺度上引入伪影，本文采用多分辨率混合策略。分别构建输入图像的高斯金字塔：\(\{I_{\text{high}}^0, I_{\text{high}}^1, ..., I_{\text{high}}^L\}\) 与 \(\{I_{\text{low}}^0, I_{\text{low}}^1, ..., I_{\text{low}}^L\}\)，其中 \(L\) 为金字塔层数，层数 \(l=0\) 对应原始分辨率。
+在各层金字塔上，独立进行基于权重 \(\lambda^l(x)\)的融合：
+\begin{equation}
+I_{\text{final}}^l(x) = \lambda^l(x) \cdot I_{\text{high}}^l(x) + (1 - \lambda^l(x)) \cdot I_{\text{low}}^l(x)
+\end{equation}
+
+最终，通过拉普拉斯金字塔重构算法，从粗尺度到细尺度逐层恢复细节，合成完整的融合图像：
+\begin{equation}
+I_{\text{final}} = \sum_{l=0}^{L} \uparrow^{l} \left( I_{\text{final}}^l - \uparrow (I_{\text{final}}^{l+1}) \right)
+\end{equation}
+其中，\(\uparrow\) 表示上采样操作符，\(\uparrow^{l}\) 表示连续执行 \(l\) 次上采样，并约定 \(I_{\text{final}}^{L+1} \equiv 0\)。此多尺度混合机制能有效抑制单尺度融合中常见的伪影现象，生成视觉连贯且细节保持性良好的高质量融合图像。
 
 
 \section{实验设计与结果分析}

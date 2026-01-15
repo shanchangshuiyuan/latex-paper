@@ -1,2 +1,939 @@
-\chapter{基于异质图多维特征的图划分方法}
-xxx
+\chapter{基于眼跳效应的注视点渲染方法}
+针对传统注视点渲染技术在动态眼跳过程中存在感知时序利用不足导致计算资源冗余的问题，本章提出基于眼跳效应的注视点渲染方法。
+该方法通过构建融合眼跳效应的多维视觉感知模型castleCSF-TS，建立眼动生理事件与实时感知能力的映射关系，并以此驱动分辨率在时空域的自适应调度，从而在严格保持视觉感知质量的前提下显著提升渲染效率。
+同时通过系统的心理物理学实验与渲染性能测试，验证了本方法的可行性与有效性。
+\section{问题描述与分析}
+尽管注视点渲染技术通过在人眼注视的中心区域（中央凹）呈现高分辨率图像，同时在视觉外围区域降低渲染质量，有效缓解了虚拟现实系统的渲染负载，但现有方法在利用人类视觉系统的动态特性方面仍存在根本性不足。本节旨在剖析当前技术体系中的两个核心问题：一是未能有效利用眼动过程中的时序感知窗口，二是缺乏一个能够精确刻画多维度动态视觉敏感度的感知模型。这些问题限制了渲染效率的进一步提升，并可能在动态交互中引入可感知的视觉失真。
+\subsection{问题描述}
+当前主流的注视点渲染技术主要建立在静态或准静态的视觉感知模型之上。其核心优化逻辑是基于视网膜敏感度随偏心度增加而下降的空间特性，在空间域进行非均匀的渲染资源分配。然而，人类视觉系统是一个高度动态的系统，其感知能力在时间维度上并非恒定。尤其在用户频繁进行眼跳运动的虚拟现实环境中，现有方法的局限性凸显为以下两个亟待解决的关键挑战：
+
+（1）现有注视点渲染策略未能有效利用眼动过程中存在的视觉无效窗口，导致在特定时段存在显著的计算资源冗余。当用户视线发生快速转移（即眼跳）时，视觉系统会启动“扫视抑制”机制以抑制视网膜运动模糊；在眼跳着陆后，中央凹区域的视觉敏感度并非瞬时恢复至峰值，而是伴随微扫视与眼漂移经历一个持续数百毫秒的渐进恢复过程。在此期间，用户对落入中央凹区域的高频空间细节的感知能力是暂时性下降的。然而，现有的注视点渲染管线在此“视觉无效窗口”内，依然对预测的或当前的中央凹区域施加最高质量的渲染。这种无视时间动态性的策略本质上是一种过度渲染，造成了不必要的计算消耗，并直接转化为渲染延迟与系统功耗的增加。
+
+（2）渲染质量的自适应调整缺乏一个能够融合多维度动态因素的精细感知模型，导致资源调度难以在避免视觉损失和最大化节省资源之间达到最优平衡。视觉敏感度不仅受空间偏心度影响，还与时间频率、刺激面积、环境亮度、色彩通道以及实时的眼动状态（如扫视、恢复期、稳定注视）等多个维度密切相关。现有方法大多依赖基于单一偏心度函数的固定敏感度下降曲线，或仅引入经验性的固定延迟参数来控制时序变化。这种简化模型无法精确量化在动态VR环境中，尤其是在眼跳后恢复期内，视觉敏感度随上述多维度参数变化的真实轨迹。没有这样一个精细化的时空耦合感知模型，系统便无法建立从实时眼动状态、场景内容到所需渲染分辨率的精确映射。其后果是，渲染资源的调度要么过于保守，导致在视觉敏感度低谷期仍进行高负载渲染，造成资源浪费；要么过于激进，可能在敏感度已恢复后仍提供低质量图像，从而引发可感知的帧间闪烁、细节迟滞或视觉伪影，破坏视觉沉浸感。
+
+\subsection{问题分析}
+针对上述问题，本研究从视觉生理学与计算机图形学的交叉视角，进行如下深入分析：
+
+（1）静态空间优化范式与动态视觉生理过程之间存在根本性矛盾。现有技术的核心假设——“中央凹区域恒需最高质量渲染”——忽略了眼动周期中固有的动态感知阶段。眼跳及其后的恢复期，构成了一个被当前渲染管线所忽视的“时序优化窗口”。在此窗口内，由于扫视抑制与视觉敏感度延迟恢复的生理机制，大脑对中央凹输入的高频信息处理能力存在暂时性的阈值提升。在视觉系统的“低敏期”内强行输送超越瞬时感知极限的高质量图像，其生成的像素信息在很大程度上是无效的，这构成了制约当前注视点渲染技术效率实现阶跃式提升的一个深层次瓶颈。
+
+（2）多维视觉感知因素的建模缺失导致渲染决策缺乏精确性与自适应性。要实现高效的时序与空间联合优化，必须依赖于一个能够精确预测在复杂动态环境下视觉敏感度阈值的计算模型。然而，传统的对比敏感度函数或简化的偏心度模型，均无法完整刻画在眼跳发生前后，视觉敏感度如何随空间频率、时间频率、颜色、亮度、面积以及时间等因素协同变化。这种模型维度的缺失，使得渲染引擎无法进行科学的、感知无损的决策。系统既不能准确判断应在何时开始降低分辨率，也无法确定降低的幅度与恢复的轨迹，更难以根据不同场景内容（如高对比度边缘、纹理细节、运动物体）自适应地调整优化策略。
+
+综上所述，本文提出的基于眼跳效应的注视点渲染算法，旨在突破现有注视点渲染技术瓶颈，将优化维度从单一空间扩展至时空联合，并构建一个能够融合眼跳效应、覆盖多维度刺激参数的动态视觉感知模型，精确量化眼跳后视觉敏感度的动态恢复过程及其他多维因素的影响，并以此模型驱动感知自适应的动态分辨率渲染算法，从而在严格保证视觉感知质量的前提下，实现对渲染计算资源的深度优化与效率的显著提升。
+\section{基于眼跳效应的注视点渲染算法}
+
+\subsection{总体架构}
+
+
+基于前文对问题的分析，本节提出基于眼跳效应的注视点渲染算法，通过构建与眼动生理过程相适配的时序感知资源调度机制，在保障视觉质量的前提下显著提升渲染效率。
+该算法的总体架构如图\ref{fig:median_curve1}所示，其核心工作流程可概括为以下三个阶段：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{../figures/thirdChapter/4-3.pdf}
+    \caption{基于眼跳效应的注视点渲染算法总体架构图}
+    \label{fig:median_curve1}
+\end{figure}
+（1）眼动时序优化窗口的构建与识别：负责处理原始眼动追踪信号。通过设计一种低延迟、高鲁棒性的事件检测算法，精准捕捉“扫视开始”与“眼跳着陆”这两个关键生理事件，并据此界定出“扫视抑制期”与“眼跳后敏感度恢复期”这两个连续的时序优化窗口。该阶段输出精确的时间基准，为整个系统的动态决策提供至关重要的上下文。
+
+（2）融合眼跳效应的视觉敏感度动态建模与映射：在识别出的时序窗口内，调用融合眼跳效应的多维视觉感知模型，该模型以扫视后时间为及眼动状态作为首要输入，同时集成亮度、色彩、刺激面积、偏心度及空间频率等多维静态刺激参数，实时预测出用户在特定时刻的中央凹视觉敏感度阈值。此阈值随后被映射为指导渲染管线操作的分辨率缩放因子，从而完成从生理感知状态到图形渲染参数的量化转换。
+
+（3）感知自适应的动态分辨率渲染：渲染引擎接收由感知模型驱动的动态分辨率缩放指令，在图形流水线中实施感知自适应的分辨率调控。具体而言，在视觉敏感度尚处于恢复初期的窗口内，系统对中央凹区域实施显著的、与预测敏感度相匹配的降采样；随着模型预测的敏感度逐渐恢复至稳定水平，渲染分辨率也沿平滑轨迹同步提升至全分辨率。为确保整个动态调整过程在视觉上不可察觉，本环节设计了帧间的平滑过渡策略，可有效避免因分辨率突变而产生的视觉伪影。
+
+综述所述，本算法使得渲染计算资源的消耗曲线得以与人类视觉系统的瞬时感知能力曲线高度对齐，不仅为解决高负载VR应用的渲染瓶颈提供了新的思路，也为实现感知质量与渲染效率的最优平衡奠定了坚实的技术基础。
+
+
+
+\label{sec:subsec:event_detection} 
+\subsection{眼动时序优化窗口的构建与识别}
+
+本节旨在构建一套严谨的眼动时序优化窗口识别机制，可在高速眼动信号流中实时、准确地定位出扫视抑制及其眼跳着陆后视觉灵敏度恢复的时段，为后续基于感知模型的动态分辨率调制提供无可争议的时间基准。本节的论述将分为两个部分：首先阐明构建这些窗口的生理学基础与明确定义；随后详细介绍实现窗口精准划分的实时检测算法。
+
+（1）生理学基础与窗口定义
+
+基于视觉生理学研究，人类视觉系统在动态观察过程中表现出的时序特性是构建优化窗口的理论基础。眼动过程中的两个关键生理现象直接影响着视觉感知能力的时间变化规律：
+
+扫视抑制是视觉系统的一种主动抑制机制。在眼球快速运动期间，大脑通过调节外侧膝状体和初级视皮层的神经响应，主动降低视觉敏感度以避免视网膜图像运动造成的模糊感。这种主动抑制有效过滤了因视网膜图像滑动而产生的运动模糊信号，是维持视觉稳定知觉的基石。这意味着，在扫视发生的数十毫秒内，外界的高频空间信息在很大程度上被“屏蔽”，无法进入意识层面的感知。
+
+视觉灵敏度延迟恢复则描述了眼跳着陆后，中央凹功能恢复的渐进特性。着陆瞬间，视觉敏感度并未瞬时达到峰值，其恢复受到多种因素的制约：视觉信号从视网膜传输至皮层存在约20-40毫秒的固有神经传导延迟；眼球需要时间通过微眼动和漂移重新建立稳定的注视；同时，高级认知资源（如空间注意力）也需要重新定向并聚焦于新的注视点。这些因素共同导致中央凹对细节的分辨能力在扫视结束后，需要经历一个持续数百毫秒的、单调递增的恢复过程。
+
+基于上述生理机制，本算法在时间轴上明确定义了两个连续的感知低谷期，即时序优化窗口：
+
+扫视窗口：覆盖从扫视开始到眼跳着陆的整个眼球高速运动期。此窗口内，视觉系统处于深度抑制状态，为渲染优化提供了最大的理论冗余度。
+
+恢复窗口：从眼跳着陆时刻开始，持续至中央凹视觉敏感度恢复至稳定注视水平。此窗口内，视觉系统的敏感度随时间动态提升，要求渲染质量必须与之同步、渐进地恢复。
+恢复窗口：从眼跳着陆时刻开始，持续至中央凹视觉敏感度恢复至稳定注视水平。此窗口内，视觉系统的敏感度随时间动态提升，要求渲染质量必须与之同步、渐进地恢复。
+
+这两个窗口共同标识出视觉系统对高空间频率细节敏感性显著降低的时段，为在时间域内实施感知无损的渲染质量调制提供了严格的生理学依据与可操作的时间框架。
+
+（2）眼动事件检测与时序窗口划分算法
+
+为实现对上述生理窗口的实时、精准捕捉，本文设计了基于速度与位置稳定性的双重阈值实时检测算法。该算法持续接收高采样率的眼动仪原始数据，并计算瞬时眼球角速度，准确识别出扫视开始与扫视着陆这两个关键事件，并以此驱动扫视窗口与恢复窗口的启闭，其决策逻辑如下：
+
+扫视开始检测：当系统检测到眼球瞬时角速度连续超过预设阈值，且视线点已偏离初始注视点周围1.9°视角度区域时，则判定为一次扫视开始。算法立即记录精确的时间戳 $t_{\text{start}}$，并将系统内部状态标记为“扫视中”，同时开启扫视窗口。
+
+扫视着陆检测：当眼球速度回落至低于阈值，并且连续的注视点坐标稳定落入以预期目标位置为中心、半径为$2.9^\circ$的区域内时，判定为扫视着陆。算法记录着陆时间戳 $t_{\text{land}}$，随即关闭扫视窗口。同时，系统状态切换为“恢复期”，并以 $t_{\text{land}}$ 为绝对时间原点，立即开启恢复窗口。
+
+在恢复窗口期内，算法维护一个高精度计时器，持续输出从 $t_{\text{land}}$ 起算的流逝时间 $t$。此变量 $t$ 作为关键输入参数传递给融合眼跳效应的多维视觉感知模型，用于查询当前时刻的视觉敏感度预测值。恢复窗口的终止由动态条件决定：当 $t$ 超过预设的最大生理恢复时长或由感知模型计算出的分辨率因子 $k(t)$ 连续数帧达到1.0（表明感知已完全恢复）时，窗口关闭，系统状态重置为“稳定注视”。
+
+本算法以明确的生理事件为锚点，实现了毫秒级精度的窗口划分，确保了优化操作被严格约束在生理性低敏时段内。其中，扫视窗口允许实施最激进的下采样优化；恢复窗口则依据融合眼跳效应的多维视觉感知模动态指导渲染质量的渐进恢复。该算法设计兼顾了检测精度与计算效率，为整个渲染优化框架提供了可靠且高效的时序调度基础。
+
+\label{sec:subsec:event_detection} 
+\label{sec:融合眼跳效应的多维视觉感知模型} 
+\subsection{融合眼跳效应的多维视觉感知模型}
+基于人类视觉系统（HVS）的特性，可通过数学模型对其生物功能与感知特征进行近似，进而构建视觉感知模型以指导注视点渲染。由于
+HVS
+在视野范围内具有非均匀的感知特性，常采用视觉敏感度下降模型来模拟视觉分辨率随偏心率增加而逐渐降低的现象。传统的注视点渲染方法通常依据视网膜感受域划分渲染区域，并基于固定的视觉敏感度衰退曲线分配计算资源。然而，这类方法往往在资源分配上过于保守或激进，应综合考虑多种视觉感知参数，并确保在不同显示环境下能够实现自适应调整。
+
+CSF是描述人眼对于不同空间频率下图像对比度变化敏感度的基础视觉模型。传统
+CSF
+模型主要关注静态或稳态条件下的视觉感知或仅关注刺激相关维度中的部分参数，然而在虚拟现实环境中，人眼频繁执行眼跳运动，导致视觉感知系统处于高度非稳态状态。本节将考虑与
+VR
+应用最相关的刺激参数，融合眼跳过程中发生的“扫视抑制”现象及眼跳着陆后视觉敏感度的渐进恢复特性，基于现有研究提出的
+castleCSF 感知模型，构建 castleCSF-TS（Contrast Sensitivity Function of
+Color, Area, Spatiotemporal Frequency, Luminance, Eccentricity, and
+Temporal
+Saccade）模型，该模型旨在建立一种综合考虑颜色、刺激面积、时空频率、亮度、视网膜偏心度以及扫视时间动态性等多维参数的对比敏感度计算框架，为动态视觉环境下的感知优化提供精确的理论依据。该模型框架如图
+3.2 所示。通过该模型可以得到在不同偏心度下的对比敏感度阈值，即 HVS
+能感知到的最小对比度差异，对于敏感度较高的中央凹区域不执行降采样，并依据敏感度阈值动态划分中央凹区域；对于视野以外的其他区域执行降采样，并根据对比度损失阈值计算出每一个像素的最大降采样级别，也称为降采样因子。
+
+为了更好理解，本节分别从模型建立和模型参数估计两方面对融合眼跳效应的多维视觉感知模型
+castleCSF-TS 进行详细描述：
+
+（1）模型建立
+
+视觉神经科学的研究表明\cite{4-1}，视觉信息在视网膜及外侧膝状体等早期处理阶段即被分离到不同的并行通道中进行处理。经典的颜色对抗理论将视觉系统分为三个主要感知通道：一个对亮度信息敏感的无色通道以及两个对颜色信息敏感的彩色通道（红-绿对抗通道和黄-蓝对抗通道）。本模型采纳了这一生理学基础，并为其建立了严格的数学描述。
+
+首先，我们采用基于视锥细胞响应的颜色表示方法。设显示设备呈现的均匀背景的视觉刺激，在长波（L）、中波（M）、短波（S）视锥细胞响应空间中的值为$\begin{pmatrix}L_{0},M_{0},S_{0}\end{pmatrix}$。待检测的刺激图案（如正弦光栅）可以视为在该背景上的一个微扰，其在视锥响应空间中的增量表示为$\begin{pmatrix}\Delta L,\Delta M,\Delta S\end{pmatrix}$。
+在此基础上，为模拟视觉系统的颜色对抗处理，需要将视锥响应增量转换到 DKL 颜色空间\cite{4-1}，该空间通过一个线性变换矩阵将视锥信号映射到三个感知上近似正交的维度：
+\begin{equation}
+\begin{bmatrix}
+\Delta D_{Ach} \\
+\Delta D_{RG} \\
+\Delta D_{YV}
+\end{bmatrix} = \begin{bmatrix}
+1 & 1 & 0 \\
+1 & - 2.3112 & 0 \\
+ - 1 & - 1 & 50.9875
+\end{bmatrix}\begin{bmatrix}
+\Delta L \\
+\Delta M \\
+\Delta S
+\end{bmatrix}
+\label{eq:dkl_transform}
+\end{equation}
+其中 $\Delta D_{Ach}$代表无色（Achromatic）通道的响应，它主要由L和M视锥细胞的信号之和驱动，对应明暗感知。
+$\Delta D_{RG}$代表红-绿（Red-Green）对抗通道的响应，它由L和M视锥细胞的差值信号驱动。
+$\Delta D_{YV}$代表黄-紫（Yellow-Violet）对抗通道的响应，它主要反映了S视锥信号与L、M视锥信号之和的对抗关系。
+
+在颜色空间转换完成后，需要进一步考虑对比度的计算问题。由于视觉系统对对比敏感度的感知更依赖于刺激与背景的相对差异而非绝对强度。因此，需要将各通道的响应增量归一化。定义背景的感知亮度$Y = L_{0} + M_{0}$，这近似于光亮度，然后，计算各通道的对比度：
+\begin{equation}
+\Delta C_{Ach} = \frac{\Delta D_{Ach}}{Y},\quad\Delta C_{RG} = \frac{\Delta D_{RG}}{Y},\quad\Delta C_{YV} = \frac{\Delta D_{YV}}{Y}
+\label{eq:contrast_normalization}
+\end{equation}
+其中，\(\Delta C_{\text{Ach}}\)、\(\Delta C_{\text{RG}}\)、\(\Delta C_{\text{YV}}\)分别表示无色通道、红-绿通道和黄-紫通道的归一化对比度。至此，任意一个彩色视觉刺激被解耦为三个独立的、具有明确感知意义的对比度分量\((\Delta C_{Ach}, \Delta C_{RG}, \Delta C_{YV})\)。后续的建模将针对每个通道独立进行，最终通过特定的规则进行整合。
+
+在建立了颜色处理框架后，我们需要转向时间维度的建模，这是castleCSF-TS模型扩展的关键所在。时间维度建模的核心在于将视觉系统的时间响应分解为两个层面的作用：一是对刺激本身时间频率（如闪烁、运动速度）的稳态响应；二是由观察者自身眼动状态（眼跳）引发的、独立于刺激频率的动态调制。这种双重建模方法的优势在于能够同时处理刺激的固有特性和观察者的主动行为，使得模型更加贴近真实的视觉体验。
+
+具体到稳态时间频率响应函数的建立，心理物理学和电生理学证据表明\cite{4-2,4-3}，视觉系统存在多个时间通道，主要包括处理持续信息的持续通道和处理快速变化信息的瞬态通道。对于所有三个颜色通道，其持续通道对时间频率\(\omega\)的响应可以用一个广义的指数衰减函数来刻画\cite{4-4}：
+\begin{equation}
+R_{S}^{c}(\omega) = \exp\left( - \frac{\omega^{\beta_{S}^{c}}}{\sigma_{S}^{c}} \right),\quad c \in \{ Ach,RG,YV\}
+\end{equation}
+其中，\(\omega\)表示刺激的时间频率，单位为赫兹，通常取值范围为0-100 Hz；\(\beta_S^c\)和\(\sigma_S^c\)是通道特定的形状参数，其中\(\beta_S^c\)是持续通道的时间频率幂指数，控制衰减曲线的形状，\(\sigma_S^c\)是持续通道的时间频率尺度参数，控制衰减速率；\(R_S^c(\omega)\)表示持续通道对时间频率\(\omega\)的响应值，范围为(0,1]。该函数描述了随着刺激时间频率的增加，该通道的响应效率呈指数下降的趋势，表现为低通特性，这一特性反映了视觉系统对快速变化刺激的有限响应能力。
+
+瞬态通道主要存在于无色通道中，其响应具有带通特性，即对某个中等时间频率最为敏感。我们使用一个以峰值频率为中心的高斯衰减函数来建模\cite{4-4}：
+\begin{equation}
+R_T^{Ach}(\omega, Y) = \exp\left(-\frac{\left|\omega^{\beta_T^{Ach}} - (\omega_0(Y))^{\beta_T^{Ach}}\right|^2}{\sigma_T^{Ach}}\right)
+\label{eq:transient_channel}
+\end{equation}
+其中，\(\beta_T^{Ach}\)和\(\sigma_T^{Ach}\)是形状参数，关键的\(\omega_0(Y)\)是峰值时间频率，它随着环境亮度\(Y\)的增加而向更高频率移动\cite{4-4}：
+\begin{equation}
+\omega_0(Y) = m_{\omega}^{Ach} \log_{10} Y + c_{\omega}^{Ach}
+\label{eq:peak_temporal_freq}
+\end{equation}
+其中，\(m_{\omega}^{\text{Ach}}\)是峰值频率随对数亮度的斜率，典型值约2.4 Hz/对数单位；\(c_{\omega}^{\text{Ach}}\)是峰值频率的截距参数，典型值约4.7 Hz。这一线性关系的参数拟合数据来源于de Lange（1958）和Snowden等（1995）的研究\cite{4-4}，为模型的可靠性提供了实验支持。
+
+在建立了稳态时间响应模型后，我们需要进一步考虑扫视时间动态性调制函数。基于对眼跳后视觉敏感度恢复过程的实验研究，发现恢复过程遵循一个幂函数规律。扫视着陆后，经过时间\(t\)，中央凹区域可分辨的最高空间频率\(SF(t)\)为：
+\begin{equation}
+SF(t) = k_1 \cdot t^{k_2} + k_3
+\label{eq:sf_recovery_raw}
+\end{equation}
+其中，\(t\)表示扫视着陆后的时间，单位为秒，取值范围0-0.5 s；\(SF(t)\)表示扫视后时间\(t\)时刻可分辨的最高空间频率，单位为CPD；\(k_1 = 1.9471\)是恢复曲线的尺度参数；\(k_2 = 0.3477\)是恢复曲线的幂指数，描述非线性恢复速率；\(k_3 = 9.5065\)是初始空间频率（扫视刚结束时）。该函数基于心理物理实验数据拟合得到，当\(t = 0^+\)（扫视刚结束时），\(SF(0) \approx 9.5\) CPD；当\(t = 0.5\)秒时，\(SF(0.5) \approx 27\) CPD，基本恢复至稳定水平。
+
+为了将这一恢复过程整合到模型中，我们进行归一化处理，定义扫视后时间恢复因子\(\alpha(t)\)：
+\begin{equation}
+\alpha(t) = \frac{SF(t)}{SF_{\max}} = \frac{1.9471 \cdot t^{0.3477} + 9.5065}{27.0}
+\label{eq:alpha_t}
+\end{equation}
+其中，\(SF_{\max} = 27.0\) CPD是完全恢复后的最高空间频率；\(\alpha(t)\)是归一化的时间恢复因子。该因子满足\(\alpha(0^+) \approx 0.35\)，表示扫视刚结束时的视觉敏感度约为完全恢复时的0.35倍；\(\alpha(0.5) \approx 1.0\)，表示扫视后500ms基本完全恢复。这一因子将应用于所有视觉通道的时间响应调制，确保模型能够准确描述扫视后视觉敏感度的动态恢复过程。
+
+将稳态响应与扫视动态调制相结合，需要一个统一的状态变量\(s\)来描述当前的眼动状态：\texttt{SACCADING}（扫视中）、\texttt{POST-SACCADIC}（扫视后恢复期）、\texttt{FIXATING}（稳定注视期）。定义扫视状态调制因子\(\Gamma(t, s)\)：
+\begin{equation}
+\Gamma(t, s) = 
+\begin{cases} 
+\gamma_{\text{sacc}}, & s = \text{SACCADING} \\
+\alpha(t), & s = \text{POST-SACCADIC}, \quad t < T_{\text{rec}} \\
+1.0, & s = \text{FIXATING}, \quad t \geq T_{\text{rec}}
+\end{cases}
+\label{eq:gamma_factor}
+\end{equation}
+其中，\(s\)是眼动状态变量，取值为{SACCADING, POST-SACCADIC, FIXATING}；\(\gamma_{\text{sacc}} = 0.3\)是扫视过程中的抑制强度，通常取值在0.2至0.4之间；\(T_{\text{rec}} = 0.5\) s是恢复时间窗口，基于实验结果设定。这一调制因子能够准确描述不同眼动状态下的敏感度变化。
+
+基于上述定义，我们可以将扩展后的时间响应函数表达为原稳态响应函数与调制因子\(\Gamma(t, s)\)的乘积：
+\begin{equation}
+\tilde{R}_S^c(\omega, t, s) = R_S^c(\omega) \cdot \Gamma(t, s)
+\label{eq:modified_sustained}
+\end{equation}
+\begin{equation}
+\tilde{R}_T^{Ach}(\omega, Y, t, s) = R_T^{Ach}(\omega, Y) \cdot \Gamma(t, s)
+\label{eq:modified_transient}
+\end{equation}
+其中，\(\tilde{R}_S^c\)表示考虑扫视动态调制后的持续通道时间响应，\(\tilde{R}_T^{\text{Ach}}\)表示考虑扫视动态调制后的瞬态通道时间响应。
+
+在建立了时间维度的模型后，我们需要转向空间维度的考虑，这是描述视觉系统分辨能力的关键。视觉系统对不同空间尺度信息的处理能力存在显著差异，且该能力受到刺激区域大小和环境亮度的深刻影响。视觉通道对空间频率 \(\rho\) 的响应特性不同，无色通道呈现经典的带通特性，而彩色通道由于缺乏强烈的侧向抑制，主要呈现低通特性。
+
+对于无色通道的空间响应，我们采用截断对数抛物线模型来模拟其带通形状及低频衰减：
+\begin{equation}
+I_S^{Ach}(\rho, Y) = 
+\begin{cases} 
+1 - k_{a,S}^{Ach}, & \text{if } \rho < \rho_{m,S}^{Ach}(Y) \text{ and } I_S^{Ach} < 1 - k_{a,S}^{Ach} \\
+10^{-\frac{\left(\log_{10}\rho - \log_{10}\rho_{m,S}^{Ach}(Y)\right)^2}{2k_{b,S}^{Ach}}}, & \text{otherwise}
+\end{cases}
+\label{eq:ach_spatial_response}
+\end{equation}
+其中，\(\rho\)表示空间频率，单位为周期每度（CPD）；\(\rho_{m,S}^{\text{Ach}}(Y)\)是无色持续通道的峰值空间频率，随亮度变化；\(k_{a,S}^{\text{Ach}}\)是低频衰减深度参数，反映侧向抑制强度；\(k_{b,S}^{\text{Ach}}\)是带宽参数，控制空间频率选择性的宽度。
+同时，峰值空间频率\(\rho_{m,S}^{\text{Ach}}(Y)\)与亮度\(Y\)的关系可以表达为：
+\begin{equation}
+\rho_{m,S}^{Ach}(Y) = k_{p1,S}^{Ach} \left(1 + \frac{k_{p2,S}^{Ach}}{Y}\right)^{-k_{p3,S}^{Ach}}
+\label{eq:peak_spatial_freq}
+\end{equation}
+其中，\(k_{p1,S}^{\text{Ach}}\)是峰值空间频率的渐近最大值（高亮度时）；\(k_{p2,S}^{\text{Ach}}\)是亮度半饱和常数，控制过渡区域；\(k_{p3,S}^{\text{Ach}}\)是衰减指数，控制从低亮度到高亮度的过渡速率。这一函数描述峰值空间频率随亮度增加而右移的现象，反映了在更亮环境下视觉分辨力提升的现象。
+
+对于彩色通道的空间响应，我们建模为低通特性的截断对数抛物线：
+\begin{equation}
+I_S^{c}(\rho, Y) = 
+\begin{cases} 
+1, & \text{if } \rho < \rho_{m,S}^{c}(Y) \\
+10^{-\frac{\left(\log_{10}\rho - \log_{10}\rho_{m,S}^{c}(Y)\right)^2}{2k_{b,S}^{c}}}, & \text{otherwise}
+\end{cases}, \quad c \in \{RG, YV\}
+\label{eq:color_spatial_response}
+\end{equation}
+其中，\(\rho_{m,S}^{c}(Y)\)表示彩色通道的峰值空间频率，对亮度变化不敏感；\(k_{b,S}^{c}\)是彩色通道的带宽参数，通常比无色通道更宽。截断处理确保低频敏感度保持为1，反映彩色通道的低通特性，即彩色视觉系统对高频细节的分辨能力较弱。
+
+刺激面积效应的整合同样重要，这是描述视觉系统对刺激大小敏感性的关键因素。根据Ricco定律和后来的空间求和模型，对比敏感度随刺激面积的增大而提高，直至达到一个“临界面积”。本文采用Rovamo等人的模型来描述这一效应：
+\begin{equation}
+S_{\text{area},t}^c(\rho, a) = \rho \sqrt{\frac{a_{x,t}^c}{1 + \frac{a_{x,t}^c}{a}}}
+\label{eq:area_integration}
+\end{equation}
+其中，\(a\)表示刺激的实际面积，单位为平方度（deg²）；\(a_{x,t}^c\)是临界面积，本身是空间频率的函数，可以表达为：
+\begin{equation}
+a_{x,t}^c = \frac{a_{0,t}^c}{1 + \left(\frac{\rho}{\rho_{0,t}^c}\right)^2}
+\label{eq:critical_area}
+\end{equation}
+其中，\(a_{0,t}^c\)是空间频率趋近于0时的临界面积，\(\rho_{0,t}^c\)是临界面积开始显著下降的特征空间频率。
+
+亮度适应性的建模是另一个关键环节，人眼能在跨越数个数量级的亮度范围内工作，根据德弗里斯-罗斯定律，在昏暗的光线下，对比敏感度与视网膜照度的平方根成比例地增加，在中等至高亮度下趋于常数，在极高亮度下可能出现下降。根据Ashraf 等人的研究，无色持续通道亮度函数可采用一个复合函数来模拟上述全部三个阶段：
+\begin{equation}
+S_{m,S}^{Ach}(Y) = k_{s1,S}^{Ach} \left(1 + \frac{k_{s2,S}^{Ach}}{Y}\right)^{-k_{s3,S}^{Ach}} \left(1 - \frac{1 + k_{s4,S}^{Ach}}{Y}\right)^{k_{s5,S}^{Ach}}
+\label{eq:ach_luminance_sustained}
+\end{equation}
+其中，\(k_{s1,S}^{\text{Ach}}\)是对比敏感度的最大渐近值；\(k_{s2,S}^{\text{Ach}}\)是过渡亮度；\(k_{s3,S}^{\text{Ach}}\)是过渡区的指数参数；\(k_{s4,S}^{\text{Ach}}\)是高亮度衰减的起始亮度阈值；\(k_{s5,S}^{\text{Ach}}\)是高亮度衰减的强度参数。第一项模拟上升与饱和，第二项模拟极高亮度下的衰减，确保了模型在高动态范围场景下的准确性。
+
+对于无色瞬态通道，其亮度函数表达为：
+\begin{equation}
+S_{m,T}^{Ach}(Y) = k_{s2,T}^{Ach} Y^{k_{s1,T}^{Ach}}
+\label{eq:ach_luminance_transient}
+\end{equation}
+其中，\(k_{s1,T}^{\text{Ach}}\)是幂律指数，通常约0.2-0.3；\(k_{s2,T}^{\text{Ach}}\)是比例系数。瞬态通道敏感度随亮度持续增加，无饱和现象，该函数反映了时间变化刺激的不同亮度适应特性。
+
+
+对于彩色通道，其亮度函数表达为：
+\begin{equation}
+S_{m,S}^{c}(Y) = k_{s1,S}^{c} \left(1 + \frac{k_{s2,S}^{c}}{Y}\right)^{k_{s3,S}^{c}}, \quad c \in \{RG, YV\}
+\label{eq:color_luminance}
+\end{equation}
+其中，\(k_{s1,S}^{c}\)是敏感度的最大渐近值；\(k_{s2,S}^{c}\)是半饱和常数，控制过渡区域；\(k_{s3,S}^{c}\)是过渡区的指数参数，通常为正值。彩色通道敏感度在低亮度区上升，高亮度区饱和，反映了彩色视觉的亮度适应特性。
+
+视网膜偏心度效应也是不可忽视的因素，视觉系统的对比敏感度从中央凹向周边视网膜急剧下降，且不同颜色通道的下降速率不同。基于 Watson 等人的研究，以中央凹（偏心度\(e = 0^\circ\)）的对比敏感度为基准，随着偏心度\(e\)增加，敏感度呈指数衰减：
+\begin{equation}
+S_{\text{ecc}}^{c}(e, \rho) = 10^{-(k_{e1}^{c} \rho + k_{e2}^{c}) e}
+\label{eq:eccentricity_basic}
+\end{equation}
+其中参数\(k_{e1}^{c}\)和\(k_{e2}^{c}\)控制衰减斜率。由于敏感度的降低在整个视野范围内是不均匀的，在鼻腔方向上降低较慢，这些参数可进一步修正为方向\(\theta\)的函数：
+\begin{equation}
+\widehat{k}_{ei}^{c} = \alpha k_{ei}^{c} + (1 - \alpha)k_{ei,\text{nasal}}^{c}, \quad i = 1,2
+\label{eq:eccentricity_weighted}
+\end{equation}
+\begin{equation}
+\alpha = \min\left\{1, \left|\frac{\theta - 180}{90}\right|\right\}
+\label{eq:eccentricity_alpha}
+\end{equation}
+其中\(\theta\)为视觉场方向角（度），0°对应颞侧，180°对应鼻侧。
+
+将上述所有维度的调制因子进行整合后，我们可以得到每个颜色通道在特定刺激条件和眼动状态下的对比敏感度。无色通道包含持续和瞬态两个子通道的贡献之和，彩色通道仅包含持续子通道：
+\begin{equation}
+\begin{aligned}
+S_{\text{Ach}}(\rho, \omega, Y, a, e, t, s) = & S_{\text{ecc}}^{\text{Ach}}(e, \rho) \times \\
+& \left[ \tilde{R}_S^{\text{Ach}}(\omega, t, s) \cdot S_{m,S}^{\text{Ach}}(Y) \cdot S_{\text{area},S}^{\text{Ach}}(\rho, a) \cdot I_S^{\text{Ach}}(\rho, Y) \right. \\
+& + \left. \tilde{R}_T^{\text{Ach}}(\omega, Y, t, s) \cdot S_{m,T}^{\text{Ach}}(Y) \cdot S_{\text{area},T}^{\text{Ach}}(\rho, a) \cdot I_T^{\text{Ach}}(\rho, Y) \right]
+\end{aligned}
+\label{eq:ach_sensitivity}
+\end{equation}
+
+\begin{equation}
+S_c(\rho, \omega, Y, a, e, t, s) = S_{\text{ecc}}^{c}(e, \rho) \cdot \tilde{R}_S^{c}(\omega, t, s) \cdot S_{m,S}^{c}(Y) \cdot S_{\text{area},S}^{c}(\rho, a) \cdot I_S^{c}(\rho, Y), \quad c \in \{RG, YV\}
+\label{eq:color_sensitivity}
+\end{equation}
+其中，所有输入变量包括：\(\rho\)（空间频率，单位CPD）、\(\omega\)（时间频率，单位Hz）、\(Y\)（背景亮度，单位cd/m²）、\(a\)（刺激面积，单位deg²）、\(e\)（视网膜偏心度，单位度）、\(t\)（扫视后时间，单位秒）、\(s\)（扫视状态）。
+
+在多通道信息整合阶段，视觉系统如何将三个通道的信息整合为一个是否可见的决策，是模型的最后一步。castleCSF-TS模型采用平方和开根号的矢量求和模型，即各通道的对比度信号在乘以各自的敏感度\(S_c\)后，被视为在一个多维感知空间中的分量。总的感知对比能量\(E\)为该向量的模长：
+\begin{equation}
+E(\rho, \omega, Y, a, e, t, s) = \sqrt{ \left( S_{\text{Ach}} \cdot \Delta C_{\text{Ach}} \right)^2 + \left( S_{\text{RG}} \cdot \Delta C_{\text{RG}} \right)^2 + \left( S_{\text{YV}} \cdot \Delta C_{\text{YV}} \right)^2 }
+\label{eq:total_energy}
+\end{equation}
+
+根据信号检测理论，当该总对比能量\(E\)达到某个恒定阈值（可归一化为1）时，观察者恰好能检测到该刺激。因此，检测条件为\(E = 1\)。
+同时为确定检测阈值，我们需要求解达到阈值所需的缩放因子。给定一个颜色调制方向\((\Delta C_{\text{Ach}}, \Delta C_{\text{RG}}, \Delta C_{\text{YV}})\)，可以求解出达到阈值所需的缩放因子\(\tau\)。设阈值处的对比度为\(\tau \cdot (\Delta C_{\text{Ach}}, \Delta C_{\text{RG}}, \Delta C_{\text{YV}})\)，代入总能量公式并令\(E = 1\)，解得：
+\begin{equation}
+\tau = \frac{1}{\sqrt{ (S_{\text{Ach}} \Delta C_{\text{Ach}})^2 + (S_{\text{RG}} \Delta C_{\text{RG}})^2 + (S_{\text{YV}} \Delta C_{\text{YV}})^2 }}
+\label{eq:tau_calculation}
+\end{equation}
+那么，阈值对比度向量为\(\tau \cdot (\Delta C_{\text{Ach}}, \Delta C_{\text{RG}}, \Delta C_{\text{YV}})\)。
+为了得到一个标量的、与颜色空间定义无关的整体对比敏感度值\(S_{\text{total}}\)，需要将阈值对比度向量转换回视锥对比空间,计算其模长的倒数，并进行标准化。
+
+综上所述，在虚拟现实中观察三维场景，考虑刺激相关的多个维度并融合眼跳过程中发生的“扫视抑制”现象及眼跳着陆后视觉敏感度的渐进恢复特性，本文基于先前的研究提出融合眼跳效应的多维视觉感知模型castleCSF-TS，该模型的最终输出即整体对比敏感度，由下式给出：
+\begin{equation}
+S_{\mathrm{total}} = \sqrt{ \frac{3}{ \left( \frac{\Delta \widehat{L}}{L_0} \right)^2 + \left( \frac{\Delta \widehat{M}}{M_0} \right)^2 + \left( \frac{\Delta \widehat{S}}{S_0} \right)^2 } }
+\label{eq:overall_sensitivity_integrated}
+\end{equation}
+其中，$S_{\text{total}}$ 表示整体对比敏感度标量值；$\Delta \widehat{{L}}, \Delta \widehat{{M}}, \Delta \widehat{{S}}$ 表示阈值处三个视锥类型的响应增量；${L}_0, {M}_0, {S}_0$ 为对应的背景视锥响应值。因子 3 确保了在对等能白光进行调制时，整体敏感度 $S_{\text{total}}$ 等于无色通道的敏感度 $S_{\text{Ach}}$。
+
+
+（2）模型参数估计与验证
+
+为验证与校准上文提出的融合眼跳效应的多维视觉感知模型中扫视时间动态性调制函数的关键参数，并精确量化眼跳后视觉敏感度的恢复轨迹，本研究设计并实施了一项严格控制的眼动心理物理学实验，旨在
+精确测量健康成年人在执行外源性眼跳后，其中央凹区域视觉敏感度随时间变化的动态恢复函数，通过获取"扫视后时间"与"可分辨最高空间频率"之间的定量关系，直接验证并校准模型中的时间恢复因子$\alpha(t)$，为后续感知自适应的动态分辨率渲染算法提供关键的时序优化依据。
+
+实验共招募了12名视力正常或矫正至正常的健康成年参与者，所有参与者均无色盲色弱及眼部疾病史，并在实验前签署知情同意书。实验在隔音暗室中进行，采用高精度眼动仪（SR Research EyeLink 1000 Plus， 1000 Hz）追踪眼球运动，视觉刺激通过一台经过校准的55英寸OLED显示器（120 Hz刷新率）呈现，参与者头部通过下颌托固定，屏幕背景亮度设定为7.2 cd/m\(^2\)以模拟标准观看环境。
+
+实验采用单试次设计，每个试次包含四个严格时序控制的阶段，其流程如图\ref{fig:trial_procedure}所示：首先，参与者需稳定注视屏幕中央点；随后，一个目标Gabor斑块（其空间频率为关键变量）出现在外周视野，周围环绕高频干扰项以促使执行精确的眼跳；眼动仪实时检测眼跳的起始与着陆，并在着陆后经过一个预设的延迟时间（\(\Delta T\)，设置50, 100, 150, 200, 300, 400, 500 ms七个水平）短暂呈现目标斑块，紧接着用噪声掩模消除视觉后像；最后，参与者判断目标斑块的条纹方向，系统记录其正误。为高效测定每个\(\Delta T\)下75\%正确率的视觉敏感度阈值，本研究采用了自适应心理物理阶梯法（QUEST），动态调整每次呈现的Gabor斑块的空间频率，使测试快速收敛于个体的感知阈值附近。
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{../figures/thirdChapter/4-2-1.png}
+    \caption{眼动心理物理学实验单试次流程图}
+    \label{fig:trial_procedure}
+\end{figure}
+
+
+研究共收集了15位参与者在7个时间点上的视觉敏感度阈值数据。我们首先剔除了眼跳不准确或存在数据缺失的无效试次，随后将每位参与者在各延迟时间下测得的空间频率阈值进行汇总。以群体数据的中位数代表集中趋势，我们将"扫视后时间"$t$作为自变量，将空间频率阈值$SF(t)$作为因变量，使用公式(4-6)所定义的幂函数模型进行非线性最小二乘拟合，得到个性化的恢复曲线参数。
+图\ref{fig:individual_curve}展示了其中一位代表性参与者的拟合结果，其数据点与拟合曲线表明视觉敏感度随恢复时间呈典型的渐进上升趋势。进而，计算所有参与者在每个时间点上阈值的中位数，并对这群体中位数数据点进行相同的模型拟合，最终获得表征群体平均恢复特性的参数估计值 \(\hat{k}_1, \hat{k}_2, \hat{k}_3\)，群体恢复曲线如图\ref{fig:median_curve}所示。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{../figures/thirdChapter/4-5.pdf}
+    \caption{眼跳后视觉敏感度动态恢复曲线拟合结果示意图（单人）}
+    \label{fig:individual_curve}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{../figures/thirdChapter/4-3.pdf}
+    \caption{群体眼跳后视觉敏感度群体恢复及中位数拟合曲线}
+    \label{fig:median_curve}
+\end{figure}
+
+实验结果展示眼跳后视觉敏感度的动态恢复过程：眼跳着陆后即刻（约50 ms），平均视觉敏感度阈值预计处于9-11 cpd的较低水平；随后，阈值随时间推移稳步上升，在大约500 ms时恢复至接近27-30 cpd的稳定注视水平。通过对群体中位数数据的拟合，将获得高确定系数（\(R^2 > 0.7\)）的幂函数模型，该模型能出色地刻画恢复轨迹。将本实验拟合得到的参数 \(\hat{k}_1, \hat{k}_2, \hat{k}_3\) 与模型预设的先验参数进行对比，二者在置信区间内无显著差异，验证了扫视动态性调制函数核心数学形式的合理性。
+本实验通过严谨的心理物理学方法，为castleCSF-TS模型的核心动态组件提供了直接的、量化的实验证据与参数标定，这不仅验证了模型的生理学基础，也为后续渲染算法中分辨率缩放因子的动态计算提供了可靠依据，确保了优化策略在感知上的无损性。
+
+
+\label{sec:融合眼跳效应的多维视觉感知模型} 
+
+\label{sec:感知自适应的动态分辨率渲染算法} 
+\subsection{感知自适应的动态分辨率渲染算法}
+
+基于前文构建的眼动时序优化窗口与融合眼跳效应的多维视觉感知模型，本节将理论成果转化为可执行的图形渲染策略，设计并实现了感知自适应的动态分辨率渲染算法。该算法将渲染分辨率的动态调整从传统的空间域扩展至时空联合域，依据用户实时的眼动生理状态与场景内容的多维视觉特征，动态调节中央凹及其周边区域的渲染负载，
+具体而言：在视觉系统因生理机制导致感知能力暂时性下降的时段如扫视抑制期及恢复初期，对中央凹区域采用相应程度的降采样渲染，从而减少传统注视点渲染技术中在时间域存在的计算冗余；随着视觉敏感度逐步恢复，渲染质量沿平滑轨迹同步提升，最终在稳定注视期达到全分辨率渲染。该算法在保障视觉感知质量的前提下，实现了对渲染计算资源的深度优化，为高帧率、沉浸式VR/AR应用，尤其是在计算资源受限的移动平台上，提供了关键的渲染效率提升方案。
+
+为实现上述动态调度，本算法设计了一套完整的从感知到渲染的映射与执行框架。如图\ref{fig:median_curve}所示。首先，算法整合多源输入如眼动信号、场景内容及设备参数等，构建统一的渲染决策上下文。其次，通过理论推导将感知模型输出的敏感度阈值，映射为可直接指导图形流水线的分辨率缩放因子。最后，通过与Unity引擎深度集成的动态多分辨率渲染管线，将时空域的分辨率调制指令高效地执行为实际的像素渲染操作。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{../figures/thirdChapter/4-3.pdf}
+    \caption{群体眼跳后视觉敏感度群体恢复及中位数拟合曲线}
+    \label{fig:median_curve}
+\end{figure}
+
+（1）算法输入与状态上下文
+
+为确保渲染决策与人类视觉生理过程高度一致，算法构建了一个统一的多源多模态输入上下文，作为所有计算与调度的基础。该上下文以高频眼动追踪数据流为核心，实时获取注视点坐标 \((x_g, y_g)\) 与眼球角速度 \(v_{eye}\)，并由第\ref{sec:subsec:event_detection}节所述的眼动事件检测算法进行处理，输出关键时序事件标记，包括扫视开始时间 \(t_{start}\)、扫视着陆时间 \(t_{land}\)，根据这些时序锚点，算法实时维护当前的眼动状态当前眼动状态 \(s \in \{ \text{SACCADING, POST-SACCADIC, FIXATING} \}\)， 并计算恢复期已流逝时间 \(t = t_{current} - t_{land}\)。
+
+此外，渲染逻辑还依赖于显示设备的物理约束，包括像素密度 $P_{px}$、最大刷新率 $f_{refresh}$及奈奎斯特空间频率 $f_{nyquist} = P_{px}/2$。同时，算法实时分析当前帧渲染缓冲区的平均亮度\(Y\)、场景主要空间频率 \(\rho_{scene}\) 及DKL 颜色空间中的色彩分布特征等，将这些参数作为 castleCSF-TS 模型的实时输入。
+
+（2）分辨率映射函数的理论推导
+
+感知自适应的动态分辨率渲染算法的核心在于建立一个分辨率映射函数，实现从预测视觉敏感度到渲染分辨率缩放因子的精确映射。具体过程如下：
+
+感知临界空间频率的求解：castleCSF-TS模型通过综合考量 DKL 三通道的感知对比能量，输出整体对比敏感度 \(S_{total}(\rho, \omega, Y, a, e, t, s)\)，该值反映了人眼在特定动态条件下的最小感知差异，为了将其应用于渲染控制，我们引入感知临界空间频率 \(\rho_{percept}(t, s)\) 的概念，
+定义为在当前眼动状态 \(s\) 和扫视后时间 \(t\) 下，人眼在中央凹区域所能分辨的最高空间频率，该值可通过反推对比敏感度函数求得：
+即给定一组环境参数 \((Y, a)\) 和标准测试对比度 \(C_{test}\)，求解满足 \(S_{total}(\rho, \omega, Y, a, 0, t, s) \cdot C_{test} = 1\) 的空间频率 \(\rho\)。鉴于模型复杂度，在实际系统中我们采用第\ref{sec:融合眼跳效应的多维视觉感知模型}节实验标定的简化幂函数模型作为高效近似：
+\begin{equation}
+\rho_{percept}(t, s) = 
+\begin{cases} 
+\rho_{min}, & s = \text{SACCADING} \\
+k_1 \cdot t^{k_2} + k_3, & s = \text{POST-SACCADIC}, \quad 0 \leq t < T_{rec} \\
+\rho_{max}, & s = \text{FIXATING}
+\end{cases}
+\label{eq:perceptual_critical_freq}
+\end{equation}
+其中，\(\rho_{min} = 9.5 \, \text{cpd}\) 为扫视抑制期的视觉敏感度下限，\(\rho_{max} = 27.0 \, \text{cpd}\) 为完全恢复后的稳定值，\(k_1 = 1.9471, k_2 = 0.3477, k_3 = 9.5065\) 为实验拟合参数，\(T_{rec} = 0.5 \, \text{s}\) 为恢复窗口时长。
+
+分辨率缩放因子的推导：渲染分辨率的选择需同时兼顾人眼感知极限与显示设备物理极限。设目标渲染图像在中央凹区域的空间采样率为 \(R_{render}\)。根据采样定理，为避免因欠采样引入可见混叠，且不向视觉无法感知的频率浪费计算资源，最优渲染频率 \(f_{render}^{*}\) 应满足：
+\begin{equation}
+f_{render}^{*} = \max\left( \rho_{percept}, f_{alias\_threshold} \right)
+\label{eq:optimal_render_freq}
+\end{equation}
+其中，\(f_{alias\_threshold}\) 是为避免可见混叠而设置的保守阈值，通常略低于 \(f_{nyquist}\)。因此，中央凹区域的理论分辨率缩放因子 \(k^{*}(t, s)\) 定义为：
+\begin{equation}
+k^{*}(t, s) = \frac{f_{render}^{*}(t, s)}{f_{native}}
+\label{eq:theoretical_scale_factor}
+\end{equation}
+其中，\(f_{native}\) 对应全分辨率渲染时的空间采样率对应的频率上限。为简化计算并增强鲁棒性，我们采用基于感知临界频率与设备奈奎斯特频率之比的实用映射函数：
+\begin{equation}
+k(t) = \min \left( 1.0, \, \eta \cdot \frac{f_{nyquist}}{\rho_{percept}(t, s)} \right)
+\label{eq:practical_scale_factor}
+\end{equation}
+其中，\(\eta \in (0, 1]\) 为安全因子，用于补偿模型拟合残差与个体间生理差异。该映射函数确保了当感知能力有限即\(\rho_{percept}\) 较低时，系统可大幅降低渲染分辨率即\(k\) 值小；随着感知能力恢复，渲染质量在时间域同步回升即\(k\) 值单调递增；当感知能力达到或超过设备极限时，系统采用全分辨率渲染即\(k=1.0\)。
+
+（3）感知驱动的时空域分辨率调度机制
+
+基于上述映射函数，算法构建了一个感知驱动的动态分辨率调度器。在每帧渲染开始前，依据当前眼动状态决定中央凹区域的分辨率缩放因子 \(k\)，并据此实施差异化的时序优化策略 ：
+
+扫视期（SACCADING）策略：
+一旦检测到扫视开始事件（\(v_{eye} > v_{threshold}\)），算法立即进入扫视响应模式。由于扫视抑制效应使中央凹视觉输入几乎被完全屏蔽，此期间对即将成为新注视点的区域进行高精度渲染是徒劳的。因此，算法采取前瞻性激进降采样策略：利用Kalman滤波器预测扫视着陆点 \((x_p, y_p)\)，并以该点为中心、半径 \(r_{pre}\) 的圆形区域作为预定义的潜在中央凹区。对该区域，分辨率缩放因子直接设置为预设最小值 \(k_{sacc} = \eta \cdot f_{nyquist} / \rho_{min}\)，通常对应原分辨率的1/4至1/8，从而在视觉感知缺失期间最大程度释放 GPU 计算压力。同时，为应对预测误差，该区域半径 \(r_{pre}\) 略大于常规中央凹半径。
+
+恢复期（POST-SACCADIC）策略：
+以扫视着陆时间 \(t_{land}\) 为原点，算法启动恢复期分辨率管理循环。每帧根据当前流逝时间 \(t_i\)动态计算缩放因子 \(k(t_i)\)。同时为避免因离散跳跃引发可感知的帧间闪烁或细节弹出伪影，必须保证分辨率的提升是连续且平滑的，为此，我们引入一阶惯性平滑滤波：
+\begin{equation}
+\tilde{k}_i = \alpha \cdot k(t_i) + (1-\alpha) \cdot \tilde{k}_{i-1}
+\label{eq:smoothing_filter}
+\end{equation}
+其中 \(\tilde{k}_i\) 为应用于当前帧的实际缩放因子，平滑系数 \(\alpha\) 根据帧时间 \(\Delta t\) 和视觉系统的时间积分特性自适应调整。基于视觉暂留现象（约100ms）和显示刷新周期，本文采用如下经验公式实现自适应平滑：
+\begin{equation}
+a = \min\left(0.5, \frac{\Delta t}{0.1}\right)
+\end{equation}
+该公式确保可在100ms内完成大部分平滑过渡，避免因帧间突变而引入可感知的闪烁或细节迟滞。同时，系数上限设为0.5，防止因帧率波动导致过度平滑而降低时序响应精度。
+
+此外，恢复期内的中央凹区域不再采用固定半径，而是基于感知临界频率动态调节。恢复期内，中央凹区域半径$r_{fovea}(t_i)$与当前可分辨的最高空间频率$\rho_{percept}(t_i)$成反比。设全分辨率下中央凹对应视角为$\theta_{max}$（通常为$2^\circ$--$3^\circ$），则动态半径可近似为：
+\begin{equation}
+r_{fovea}(t_i) = \theta_{max} \cdot \frac{\rho_{percept}(t_i)}{\rho_{max}}
+\end{equation}
+根据当前 \(\rho_{percept}(t_i)\)可推算在给定对比度下人眼可分辨的最小视锐角，进而动态调整中央凹区域的半径 \(r_{fovea}(t_i)\)，使其始终覆盖视觉敏感度高于设定阈值的范围。
+
+稳定注视期（FIXATING）策略：
+当 \(t_i \geq T_{rec}\) 或连续多帧 \(\tilde{k}_i \geq 0.98\) 时，判定视觉感知已完全恢复，系统进入稳定注视期。此时中央凹区域采用全分辨率渲染，并对中央凹以外区域沿用传统的静态注视点渲染策略，即依据静态对比敏感度随偏心度下降的曲线，实施渐进式降采样。
+
+（4）中央凹区域的动态定义
+
+传统的注视点渲染通常采用2层或3层的固定区域划分，本文方法进一步将其扩展为随时间连续变化的动态多分辨率场。在每一帧，整个视口被划分为多个同心环带，每个区域的分辨率缩放因子由该区域中心点的偏心度 \(e\) 和当前眼动状态共同决定。具体而言，定义分辨率映射函数 \(K(e, t, s)\)：
+\begin{equation}
+K(e, t, s) = \max \left( k_{min}, \, \min \left( 1.0, \, \frac{k(t) \cdot S_{total}(e=0)}{S_{total}(e)} \right) \right)
+\label{eq:dynamic_resolution_field}
+\end{equation}
+其中 \(k(t)\) 是中央凹区域即\(e=0\)的时序缩放因子，\(S_{total}(e)\) 是静态偏心度敏感度衰减函数\cite{4-1}。该函数表明在时序因子 \(k(t)\) 调制的基础上，进一步叠加空间偏心度带来的敏感度衰减效应。因此，在恢复初期，不仅中央凹区域分辨率降低，其周边区域也按比例进一步降低，形成以注视点为中心、分辨率梯度平滑变化的渲染场。
+
+（5）动态多分辨率渲染管线的实现
+
+为实现上述动态多分辨率渲染，算法与主流实时渲染引擎Unity的渲染管线深度集成：
+首先根据当前帧计算出的 \(K(e, t, s)\) 分布，将屏幕视口划分为若干同心环状逻辑区域。每个区域分配一个独立的渲染通道。在渲染时，通过动态设置视口与裁剪矩形将输出重定向至同一张离屏渲染目标的对应区域，该渲染目标的尺寸为全分辨率，但各区域的实际绘制分辨率由  \(K(e, t, s)\) 控制，通过缩放投影矩阵或直接配置较低分辨率的视口实现。
+此外结合时序因子 \(k(t)\)，动态调整模型网格与纹理的LOD偏置。在扫视与恢复初期，即使在全分辨率区域，系统会主动选择更粗糙的模型网格与更低分辨率的纹理贴图，因为高频几何与纹理细节在当前感知状态下不可见。
+
+综上所述，本算法的核心流程可概括为以下步骤，其伪代码实现如算法4.1所示：
+
+（a）初始化阶段：绑定眼动追踪设备，加载castleCSF-TS感知模型参数，设定渲染目标纹理与多分辨率区域划分策略。
+
+（b）每帧更新循环：首先获取当前眼动数据流（注视点坐标、眼球角速度），运行眼动事件检测算法以确定当前眼动状态 \(s\) 与扫视后时间 \(t\)；随后调用castleCSF-TS模型计算当前感知临界空间频率 \(\rho_{\text{percept}}(t,s)\)，并根据分辨率映射函数计算中央凹分辨率缩放因子 \(k(t)\)，应用时序平滑滤波以确保视觉连续性；接着根据动态分辨率场函数 \(K(e,t,s)\) 更新各同心环带区域的渲染分辨率设置；最后执行多通道渲染，分别以不同分辨率绘制各区域，并组合成最终图像。
+
+（c）状态重置：当系统进入稳定注视期后，重置计时器与状态变量，等待下一次眼跳事件触发新一轮优化窗口。
+
+\begin{algorithm}[htbp]
+\caption{感知自适应的动态分辨率渲染算法}
+\label{alg:adaptive_resolution_render}
+\begin{algorithmic}[1]
+\Require 眼动状态 $s$，扫视后时间 $t$，场景亮度 $Y$，空间频率 $\rho_{\text{scene}}$，设备参数 $P_{\text{px}}$, $f_{\text{refresh}}$
+\Ensure 渲染图像 $\text{renderedImage}$
+\Function{perceptualAdaptiveRendering}{$s, t, Y, \rho_{\text{scene}}, P_{\text{px}}, f_{\text{refresh}}$}
+    \State //   初始化
+    \State loadCSFParams()
+    \State initRenderingTarget()
+    \State initFovealRegions()
+    
+    \State //   每帧更新
+    \While{rendering}
+        \State //   step 1: 获取眼动数据与事件
+        \State gazePoint, eyeVelocity $\gets$ getEyeTrackingData()
+        \State $s$, $t_{\text{land}}$ $\gets$ detectSaccadeEvent(eyeVelocity)
+        \State $t$ $\gets$ getTimeSinceLanding($t_{\text{land}}$)
+        
+        \State //   step 2: 计算感知临界频率
+        \State $\rho_{\text{percept}}$ $\gets$ computePerceptualCriticalFrequency($s$, $t$, $Y$, $\rho_{\text{scene}}$)
+        
+        \State //   step 3: 计算分辨率缩放因子（中央凹）
+        \State $k_{\text{center}}$ $\gets$ computeScaleFactor($\rho_{\text{percept}}$, $P_{\text{px}}$)
+        
+        \State //   step 4: 时序平滑滤波
+        \If{$s = \text{POST\_SACCADIC}$}
+            \State $k_{\text{smooth}}$ $\gets$ applyTemporalSmoothing($k_{\text{center}}$, $\text{prev}_k$)
+        \Else
+            \State $k_{\text{smooth}}$ $\gets$ $k_{\text{center}}$
+        \EndIf
+
+        \State $\text{prev}_k$ $\gets$ $k_{\text{smooth}}$
+        
+            \State //   step 5: 动态定义中央凹半径
+        \If{$s = \text{POST\_SACCADIC}$}
+            \State $r_{\text{fovea}}$ $\gets$ computeDynamicFoveaRadius($\rho_{\text{percept}}$)
+            \Else
+            \State $r_{\text{fovea}}$ $\gets$ $r_{\text{default}}$
+        \EndIf
+
+        \State //   step 6: 构建动态分辨率场
+        \For{each region in viewport}
+            \State ecc $\gets$ computeEccentricity(region.center, gazePoint)
+            \State $k_{\text{region}}$ $\gets$ computeRegionalScale($k_{\text{smooth}}$, ecc)
+            \State setViewportResolution(region, $k_{\text{region}}$)
+        \EndFor
+
+        \State //  step 7: 执行多分辨率渲染
+        \State renderedImage $\gets$ renderMultiResolution(gazePoint, $r_{\text{fovea}}$)
+        
+        \State //   step 8: 状态重置检测
+        \If{$s = \text{FIXATING}$ and $k_{\text{smooth}} \geq 0.98$}
+            \State resetTimers()
+        \EndIf
+    \EndWhile
+    
+    \State \Return renderedImage
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+本节详细阐述了感知自适应的动态分辨率渲染算法，该算法突破了传统注视点渲染仅利用空间非均匀性的局限，创造性地引入了时序优化窗口概念，并依托于 castleCSF-TS 多维感知模型，将渲染计算资源的消耗曲线与人类视觉系统的瞬时感知能力曲线进行精细对齐，为在高性能需求与有限计算资源的矛盾中提供了一条坚实且可工程化的技术路径，使得在保持不可察觉的视觉质量损失的前提下，显著提升渲染效率与系统能效成为可能。后续章节将通过系统的实验验证，定量评估该算法在渲染效率提升与视觉质量保持两方面的综合性能。
+
+\label{sec:感知自适应的动态分辨率渲染算法} 
+
+\section{实验设计与结果分析}
+
+\subsection{实验环境}
+\label{sec:experiment-environment}
+
+为验证本文提出的基于眼跳效应的注视点渲染方法的可行性与有效性，搭建了一套集成高精度眼动追踪与感知模型驱动的虚拟现实渲染实验平台。该平台由硬件系统与软件框架组成，具体配置如表\ref{tab:experiment-configuration}所示。
+
+\begin{table}[htbp]
+  \centering
+  \caption{实验软硬件环境配置}
+  \label{tab:experiment-configuration}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabularx}{\textwidth}{>{\centering\arraybackslash}m{1.5cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{类别} & \textbf{名称} & \textbf{配置/版本} \\
+    \midrule
+    \textbf{硬件} & 中央处理器 (CPU) & Intel Core i9-13900K \\
+    & 图形处理器 (GPU) & NVIDIA GeForce RTX 4090 \\
+    & 内存 & 64GB DDR5 (2×32GB) \\
+    & 主VR头显 & HTC Vive Pro Eye  \\
+    & 眼动追踪模块 & 内置Tobii眼动仪 \\
+    & 辅助高精度眼动仪 & SR Research EyeLink 1000 Plus \\
+    & 定位基站 & SteamVR Base Station 2.0 \\
+    \midrule
+    \textbf{软件} & 操作系统 & Windows 11 Professional \\
+    & 渲染与开发引擎 & Unity 2022.3 LTS \\
+    & 眼动追踪SDK & SRanipal SDK v1.3.2 \\
+    & 数据分析 & MATLAB R2024a \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+实验系统以Unity引擎为核心，整合了本文提出的算法模块与专业分析工具。HTC Vive Pro Eye负责主体渲染与交互，其内置Tobii眼动追踪模块（采样率90Hz）用于实时获取注视点数据，并通过SRanipal SDK驱动渲染管线；SR Research EyeLink 1000 Plus提供高精度时序标定与验证。系统完全基于软件层面实现，通过编写自定义着色器、渲染管线及脚本，将视觉感知模型与感知自适应的动态分辨率渲染算法整合至Unity中，无需修改硬件设备。关键参数与第\ref{sec:融合眼跳效应的多维视觉感知模型}节标定的castleCSF-TS模型保持一致，确保实验验证的理论基础可靠。
+
+\label{sec:experiment-environment}
+
+\label{sec:评价指标} 
+\subsection{评价指标}
+（1）融合眼跳效应的多维视觉感知模型 castleCSF-TS
+
+本研究采用以分贝（dB）为单位的均方根误差（RMSE）作为衡量模型预测值与心理物理学实验实测值之间差异的核心指标。
+由于不同来源的数据集在实验范式、设备校准、观察者群体等方面存在系统性差异，导致其报告的时间敏感度阈值存在整体偏移。为消除这些非感知本质的系统偏差，使模型专注于学习感知阈值随参数变化的相对趋势，我们在误差函数中为每个数据集引入了一个可学习的数据集调整因子。该因子允许模型在对数敏感度轴上对每个数据集的全部测量值进行一个整体的垂直平移校正。
+
+具体而言：设 $D$ 为参与评估的数据集总数，$N_d$ 为第 $d$ 个数据集中的样本点数量。
+对于第 $d$ 个数据集中的第 $i$ 个刺激条件，记其实测的对比度敏感度为 $S_{i,d}$，模型 castleCSF-TS 的预测敏感度为 $\tilde{S}_{i,d}$。
+定义对数域下的误差残差，引入标量参数 $s_d$ 为第 $d$ 个数据集的调整因子，最小化预测值与调整后的实测值之间的对数差：
+\begin{equation}
+\label{eq:sid}
+\delta_{i,d} = \log_{10}(S_{i,d}) - s_d \log_{10}(\tilde{S}_{i,d})
+\end{equation}
+其中，$s_d$ 的引入是为了确保模型拟合的是数据的变化趋势，而非受到视觉敏感度基准线偏移的干扰。
+基于此残差，定义加权均方根误差，并在均方根值前乘以系数 20 以将误差单位转化为分贝：
+\begin{equation}
+\label{eq:rmse_db}
+E = 20 \sqrt{ \frac{1}{N} \sum_{d=1}^{D} \sum_{i=1}^{N_d} \left( \log_{10} S_{i,d} - s_d \log_{10} \tilde{S}_{i,d} \right)^2 } \quad [\mathrm{dB}]
+\end{equation}
+其中，$N = \sum_{d=1}^{D} N_d$ 为所有数据点的总和。在该评价体系下，$E$ 值越小，表明模型对多维视觉感知数据的拟合程度越高。
+
+为进一步量化模型在拟合优度与模型复杂度之间的权衡，我们采用赤池信息量准则（AIC）进行评估，AIC在统计学中用于比较不同模型的相对质量，它既奖励模型对数据的拟合精度，又惩罚引入过多参数所带来的过拟合风险。其计算公式为：
+\begin{equation}
+\label{eq:aic}
+\text{AIC} = n \ln\left( \frac{SSE}{n} \right) + 2k
+\end{equation}
+其中，\(n\)为用于模型参数估计的数据样本量，\(SSE = \sum_{i=1}^{n} (S_{\text{meas}, i} - S_{\text{pred}, i})^2\)为残差平方和，\(k\)为模型自由参数总数。
+AIC值越小，表明模型在简洁性与准确性上的综合性能越优。
+
+为具体评估因引入扫视时间动态性参数而带来的模型改进是否具有统计意义，我们计算castleCSF-TS模型相对于其基础模型的 AIC改进量：
+\begin{equation}
+\label{eq:delta_aic}
+\Delta \text{AIC} = \text{AIC}_{\text{castleCSF}} - \text{AIC}_{\text{castleCSF-TS}}
+\end{equation}
+
+当 $\Delta \text{AIC} < 2$ 时，模型质量无显著差异；当 $2 \le \Delta\text{AIC} < 7$ 时，有较明显差异；当 $\Delta\text{AIC} \ge 7$ 时，模型差异显著，且较小 AIC 值的模型更优。
+
+（2）感知自适应的动态分辨率渲染算法
+
+本研究利用平均帧率、GPU平均利用率以及有效计算节省比等评价指标来量化感知自适应的动态分辨率渲染算法在计算资源利用和系统性能方面的改进。
+
+帧率（FPS）是衡量注视点渲染系统性能的核心指标，表示每秒生成图像帧的数量。帧率直接反映了渲染系统的计算效率和满足实时性需求的能力。在虚拟现实场景中，较高的帧率（如 30 FPS 或以上）是保证用户获得流畅交互体验的重要标准。
+
+GPU平均利用率则从硬件资源分配的角度揭示了算法的计算负载特性。通过实时监测GPU着色器核心的活动状态与负载分布，我们能够精确分析算法对图形处理单元的计算需求变化，可直观展示算法在保持视觉质量的同时实现的计算资源节约。
+
+有效计算节省比从数据处理的层面量化了算法的优化效果，该指标的定义如下：
+设全分辨率渲染的每帧像素数据量为 \(P_{\text{full}}\)，在时间段 \(T\) 内的总帧数为 \(N\)，则全分辨率渲染的理论总数据量为：
+\begin{equation}
+D_{\text{full}} = \sum_{t=1}^{N} P_{\text{full}} = N \cdot P_{\text{full}}
+\label{eq:full_data}
+\end{equation}
+在实际算法运行中，每帧根据动态分辨率调整策略实际渲染的像素数据量为 \(P_{\text{actual}}(t)\)，因此，在时间段 \(T\) 内实际渲染的总数据量为：
+\begin{equation}
+D_{\text{actual}} = \sum_{t=1}^{N} P_{\text{actual}}(t)
+\label{eq:actual_total_data}
+\end{equation}
+基于此，有效计算节省比定义为：
+\begin{equation}
+\text{ECSR} = 1 - \frac{D_{\text{actual}}}{D_{\text{full}}} = 1 - \frac{\sum_{t=1}^{N} P_{\text{actual}}(t)}{N \cdot P_{\text{full}}}
+\label{eq:ecsr}
+\end{equation}
+该指标能够准确反映算法在时空联合优化框架下实现的整体计算冗余消除效率。
+
+\label{sec:评价指标} 
+
+
+
+\subsection{实验设计与结果分析}
+
+（1）融合眼跳效应的多维视觉感知模型 castleCSF-TS
+
+为全面评估本文提出的castleCSF-TS模型，我们开展了一系列计算验证实验。实验核心目标是利用大规模多源心理物理数据集，系统评估本模型相对于主流 CSF 模型的预测性能。
+
+实验基于 Ashraf 等人整合的公开数据集\cite{4-1}，该数据集汇集了18项研究的对比敏感度测量值，涵盖了空间频率（$\rho$）、时间频率（$\omega$）、亮度（$Y$）、刺激面积（$a$）、视网膜偏心度（$e$）及颜色调制等多维参数空间。我们在此基础上，融入了通过第\ref{sec:融合眼跳效应的多维视觉感知模型}节心理物理实验独立获取的扫视后视觉敏感度恢复数据，形成了用于训练和验证castleCSF-TS的完整数据集。
+
+针对 CSF 模型评估中的泛化性难题，即单项研究通常仅在参数空间的高维切片上采样，导致跨数据集测试难以公允反映全局拟合性能问题，
+本文采用五折交叉验证作为标准评估策略。我们将整合后的多维参数点集随机划分为五个互斥子集；在每轮实验中，轮流选取一个子集作为测试集，其余四个子集作为训练集用于优化模型参数，包括数据集调整因子。
+该过程循环五次，确保每个数据点均参与测试，最终以五次测试误差的均值及标准差作为性能指标。此评估方案确保了测试数据点的参数分布处于训练空间的包络范围内，从而有效验证模型在高维参数空间内的插值与泛化能力，而非对特定数据切片的过拟合。
+
+我们选取了四个具有代表性的经典及前沿模型作为基准对比对象：Barten's CSF、Chromatic pyramid、stelaCSF以及castleCSF，所有模型均基于相同的五折交叉验证策略在整合数据集上进行测试。
+
+表\ref{tab:overall_performance}汇总了各模型的整体预测误差。
+实验结果表明，相比于基准模型，castleCSF-TS 在拟合能力与泛化性能上均有提升，其平均测试误差从 $3.64~\text{dB}$ 降至 $3.37~\text{dB}$，误差降幅约 $7.4\%$。
+\begin{table}[htbp]
+    \centering
+    \caption{不同CSF模型在整合数据集上的整体预测性能对比（单位：dB）}
+    \label{tab:overall_performance}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabularx}{\textwidth}{
+        >{\centering\arraybackslash}m{0.3\textwidth}
+        >{\centering\arraybackslash}m{0.3\textwidth}
+        >{\centering\arraybackslash}m{0.3\textwidth}}
+        \toprule
+        \textbf{感知模型} & \textbf{平均训练误差} & \textbf{平均测试误差} \\
+        \midrule
+        original Barten's CSF (1999) & $4.43 \pm 0.07$ & $4.51 \pm 0.31$ \\
+        Chromatic pyramid (2021) & $5.12 \pm 0.15$ & $5.30 \pm 0.26$ \\
+        stelaCSF (2022) & $4.18 \pm 0.09$ & $4.36 \pm 0.41$ \\
+        castleCSF (2024) & $3.43 \pm 0.08$ & $3.64 \pm 0.23$ \\
+        \textbf{castleCSF-TS (本方法)} & $\mathbf{3.14 \pm 0.12}$ & $\mathbf{3.37 \pm 0.19}$ \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+
+为进一步探究各模型在不同视觉条件下的表现差异，我们将完整数据集按刺激属性划分为关键子集进行测试。测试结果如表\ref{tab:model_comparison}所示。
+
+\begin{table}[htbp]
+    \centering
+    \caption{各感知模型在不同参数维度上的预测误差对比（单位：dB）}
+    \label{tab:model_comparison}
+    \renewcommand{\arraystretch}{1.3}
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabularx}{\textwidth}{
+        >{\raggedright\arraybackslash}X
+        >{\centering\arraybackslash}p{0.15\textwidth}
+        >{\centering\arraybackslash}p{0.14\textwidth}
+        >{\centering\arraybackslash}p{0.14\textwidth}
+        >{\centering\arraybackslash}p{0.14\textwidth}
+        >{\centering\arraybackslash}p{0.15\textwidth}}
+        \toprule
+        \multirow{2}{*}{\textbf{测试参数维度}} & 
+        \multicolumn{5}{c}{\textbf{各感知模型预测误差（均值±标准差）}} \\
+        & \textbf{Barten's CSF} & \textbf{stelaCSF} & \textbf{Chromatic} & \textbf{castleCSF} & \textbf{\makecell{castleCSF-TS}} \\
+        & \textbf{(1999)} & \textbf{(2022)} & \textbf{(2021)} & \textbf{(2024)} & \textbf{(ours)} \\
+        \midrule
+        $\rho$, $Y$, $a$ & $3.49 \pm 0.45$ & $2.78 \pm 0.49$ & $\times$ & $\mathbf{2.67 \pm 0.31}$ & $2.69 \pm 0.30$ \\
+        $\rho$, $Y$, $a$, $\omega$ & $3.89 \pm 0.36$ & $4.37 \pm 0.39$ & $\times$ & $3.53 \pm 0.31$ & $\mathbf{3.45 \pm 0.34}$ \\
+        $\rho$, $Y$, $a$, $\omega$, $e$ & $4.53 \pm 0.32$ & $4.44 \pm 0.43$ & $\times$ & $3.32 \pm 0.20$ & $\mathbf{3.28 \pm 0.25}$ \\
+        $\rho$, $Y$, $a$, $c_{DKL}$  & $\times$ & $\times$ & $\times$ & $3.25 \pm 0.22$ & $\mathbf{3.20 \pm 0.20}$ \\
+        $\rho$, $Y$, $a$, $c$  & $\times$ & $\times$ & $\times$ & $3.31\pm 0.22$ & $\mathbf{3.29 \pm 0.21}$ \\
+        $\rho$, $Y$, $c$& $\times$ & $\times$ & $5.34 \pm 0.27$ & $3.21 \pm 0.19$ & $\mathbf{3.18 \pm 0.14}$ \\
+        $\rho$, $Y$, $\omega$, $c$ & $\times$ & $\times$ & $5.30 \pm 0.09$ & $\mathbf{3.45 \pm 0.16}$ & $3.51 \pm 0.15$ \\
+        $\rho^*$, $Y$, $\omega^*$, $c$  & $\times$ & $\times$ & $4.80 \pm 0.36$ & $3.56 \pm 0.17$ & $\mathbf{3.51 \pm 0.16}$ \\
+        $\rho$, $Y$, $a$, $\omega$, $e$, $c$ & $\times$ & $\times$ & $\times$ & $3.64 \pm 0.12$ & $\mathbf{3.60 \pm 0.11}$ \\
+        $\rho$, $Y$, $a$, $\omega$, $e$, $c$, $t$, $s$ & $\times$ & $\times$ & $\times$ & $\times$ & $\mathbf{3.34\pm 0.15}$ \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+
+在静态或稳态维度如 $\{\rho, Y, a\}$ 子集上，castleCSF-TS 的预测误差为 2.69dB，与基础模型 castleCSF 2.67dB 的性能高度一致。当引入颜色调制维度如$c_{DKL}$ 或 $c$时，两模型的预测误差仍保持在相近水平。这表明扫视动态调制因子的引入并未干扰模型对空间、亮度及颜色等稳态属性的映射关系，确保了其对castleCSF模型的后兼容性。
+
+在时间频率 $\omega$ 引入后，castleCSF-TS 在 $\{\rho, Y, a, \omega\}$ 子集上的预测误差降至3.45dB，优于 castleCSF 的3.53 dB。在融合了偏心度 $e$ 的高维子集 $\{\rho, Y, a, \omega, e\}$ 中，这种性能优势依然稳健。该结果验证了本文构建的扫视动态调制机制的有效性，通过显式建模持续通道与瞬态通道的时间响应差异，并耦合扫视状态因子 $\Gamma(t,s)$，castleCSF-TS 能够更精确地捕捉视觉系统在扫视干扰下的时域敏感度演变规律。特别是在涵盖完整 8 维参数空间（$\rho, Y, a, \omega, e, c, t, s$）的复杂场景中，castleCSF-TS 实现了3.34dB的预测精度，展现出优异的泛化能力。
+
+为评估 castleCSF-TS 模型改进的统计学意义，本文在 $\alpha=0.05$ 水平下进行了 AIC 指标评估与 F 检验，模型对比数据如表 \ref{tab:3.3} 所示。在统计性能上，castleCSF-TS 模型的 F 检验结果表明改进具有统计显著性，AIC 值降至$-2795.44$，比原模型降低约 33.8，表明在增加 2 个参数的情况下实现了更优的复杂度和精度平衡。
+\begin{table}[htbp]
+    \centering
+    \caption{感知模型统计性能对比}
+    \label{tab:3.3}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabularx}{\textwidth}{
+        >{\raggedright\arraybackslash}m{0.28\textwidth}
+        >{\centering\arraybackslash}m{0.14\textwidth}
+        >{\centering\arraybackslash}m{0.10\textwidth}
+        >{\centering\arraybackslash}m{0.10\textwidth}
+        >{\centering\arraybackslash}m{0.10\textwidth}
+        >{\centering\arraybackslash}m{0.12\textwidth}}
+        \toprule
+        \textbf{感知模型} & \textbf{自由参数个数} & \textbf{SSE} & \textbf{自由度} & \textbf{F-test} & \textbf{AIC} \\
+        \midrule
+        original Barten's CSF (1999) & 13 & 38.461 & 766 & 17.4194 & -2317.25 \\
+        Chromatic pyramid (2021) & 4 & 54.120 & 775 & 16.214 & -2048.16 \\
+        stelaCSF (2022) & 21 & 35.001 & 758 & 17.775 & -2374.94 \\
+        castleCSF (2024) & 53 & 19.625 & 726 & 17.871 & -2761.64 \\
+        \textbf{castleCSF-TS (本方法)} & \textbf{55} & \textbf{18.696} & \textbf{724} & \textbf{17.988} & \textbf{-2795.44} \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+为进一步评估 castleCSF-TS 模型在多维参数空间下的响应特性，本文在 MATLAB 环境中进行了数值仿真与切片分析。
+图 \ref{fig:combined} 展示了当偏心度为 0 deg、刺激面积为 1 deg$^2$及背景亮度为 100 cd/m$^2$的条件下，三种色彩通道随空间频率$\rho$与时间频率$\omega$变化的对比敏感度响应曲面。
+
+实验分析表明，消色差 Ach 通道呈现出显著的时空带通特性，且拥有最高的空间截止频率，主导了视觉系统对高频细节、纹理轮廓及运动信息的提取。
+相比之下，红-绿 (RG) 与黄-紫 (YV) 彩色通道则展现出明显的空间低通滤波特征。其中，由于视网膜 S-锥体分布较为稀疏，YV 通道的响应带宽与幅值在三个通道中最为有限。
+
+\begin{figure}[htbp]
+    \centering
+    
+    % 第一行
+    \subfloat[消色差 Ach 通道对比敏感度曲面图\label{fig:sub1}]{
+        \includegraphics[width=0.48\textwidth]{../figures/thirdChapter/castleCSF(Ach).png}
+    }
+    \hfill
+    \subfloat[彩色 RG 通道对比敏感度曲面图\label{fig:sub2}]{
+        \includegraphics[width=0.48\textwidth]{../figures/thirdChapter/castleCSF(RG).png}
+    }
+    
+    \vspace{0.5cm}
+    
+    \centering
+    \subfloat[彩色 YV 通道对比敏感度曲面图\label{fig:sub3}]{
+        \includegraphics[width=0.48\textwidth]{../figures/thirdChapter/castleCSF(YV).png}
+    }
+    
+    \caption{三种色彩通道下的对比敏感度随时空频率变化}
+    \label{fig:combined}
+\end{figure}
+
+
+以消色差通道为例，在 MATLAB 中可视化本模型 6 维对比敏感度函数的 3D 切片，系统揭示了空间频率与其他视觉参数的耦合机制。如图 \ref{fig1:combined} 所示。
+其中，图 \ref{fig1:sub1} 的曲面峰值区表征了时空频域的最优感知窗口，反映了人眼对中等速度运动刺激的带通滤波特性；
+图 \ref{fig1:sub2} 阐明了背景亮度提升引发的敏感度阈值陡升效应，符合韦伯定律在不同适应水平下的非线性增益规律；
+图 \ref{fig1:sub3} 的梯度衰减量化了视网膜敏感度随偏心度增加而呈现的急剧下降趋势，明确了中央凹与周边视野的分辨率差异；
+图 \ref{fig1:sub4} 证明了刺激面积增大可通过空间求和效应显著增强低频信号的检测效能；
+图 \ref{fig1:sub5} 则直观呈现了扫视后视觉敏感度随时间推移的动态恢复过程，揭示了眼跳效应在时域上的演化特征即从抑制状态逐渐恢复至稳态。
+
+\begin{figure}[htbp]
+    \centering
+    
+    % 第一行
+    \subfloat[时间频率对敏感度的影响图\label{fig1:sub1}]{
+        \includegraphics[width=0.48\textwidth]{../figures/thirdChapter/castleCSF_Effect_Temporal.png}
+    }
+    \hfill
+    \subfloat[背景亮度对敏感度的影响图\label{fig1:sub2}]{
+        \includegraphics[width=0.48\textwidth]{../figures/thirdChapter/castleCSF_Effect_Luminance.png}
+    }
+    
+    % 第二行（居中）
+    \vspace{0.5cm}
+    
+    \subfloat[视网膜偏心度对敏感度的影响图\label{fig1:sub3}]{
+        \includegraphics[width=0.48\textwidth]{../figures/thirdChapter/castleCSF_Effect_Luminance.png}
+    }
+    \hfill
+    \subfloat[刺激面积对敏感度的影响图\label{fig1:sub4}]{
+        \includegraphics[width=0.48\textwidth]{../figures/thirdChapter/castleCSF_Effect_Area.png}
+    }
+
+    % 第三行
+    \vspace{0.5cm}
+    
+    \centering
+    \subfloat[扫视后时间对敏感度的影响图\label{fig1:sub5}]{
+        \includegraphics[width=0.48\textwidth]{../figures/thirdChapter/castleCSF_Effect_SaccadeTime.png}
+    }
+    
+    \caption{影响对比敏感度变化的六维因素及其相互作用}
+    \label{fig1:combined}
+\end{figure}
+
+（2）感知自适应的动态分辨率渲染算法
+
+为全面、严谨地评估本文提出的感知自适应的动态分辨率渲染算法在实际应用中的性能表现，我们围绕其两大核心主张即视觉感知质量保持（感知透明性）与渲染效率提升（计算高效性），设计并开展了两个核心实验。实验设计遵循心理物理学与计算机图形学的性能评测规范，并依据第\ref{sec:评价指标}节所确立的量化评价指标进行分析，从而形成相互支撑、结构完整的验证体系。
+
+（a）感知透明性验证
+
+本实验的核心目标在于通过严格控制的定量化研究，依据已标定的castleCSF-TS模型进行动态分辨率调整，其产生的图像质量变化在视觉上应不可察觉。实验采用受控的心理物理学范式。
+
+实验共招募二十名视觉功能正常的参与者，所有参与者均通过了标准的视力筛查，确保其具备完成精细视觉辨别任务的能力。
+实验在一个光照条件受到严格控制的环境中进行，主要视觉刺激由一台经过专业色彩与亮度校准的高性能OLED显示器呈现，其屏幕表面平均亮度被设定为 50 cd/m²，同时为确保实验过程中视线与头部位置的稳定性，参与者头部通过下颌托固定。眼动数据由一台SR Research EyeLink 1000 Plus 眼动仪以1000 Hz的采样率进行采集。
+
+
+为确保实验刺激的标准化与普适性，我们从FOIQA\cite{4-5}等公开图像质量评估数据集中，选取了三十张未经失真处理的原始参考图像。
+实验的基本流程模拟了算法在实际运行中的一个完整周期，即一次主动的眼跳运动及其后续的视觉处理窗口。在每一次独立的试验中，参与者首先需要凝视屏幕中央的一个白色十字形注视点。经过一段随机长度的时间间隔后，一个具有高对比度的红色环形目标会突然出现在屏幕外围视野的某个随机位置，用于诱发参与者执行一次快速且目标明确的眼跳运动。当眼动仪在线算法实时检测到眼球运动已经稳定着陆于目标区域时，便会立即触发后续的图像呈现序列。
+
+该图像序列是本实验操纵的关键变量。在眼跳着陆之后，系统并非立即呈现完整分辨率的原图像，而是会根据预设的实验条件，先呈现一幅经过数字滤波处理的图像版本。该滤波处理模拟了算法中的降采样操作，其核心参数包括滤波的持续时间与滤波的强度。持续时间设置为三个水平，分别为一百毫秒、两百毫秒与五百毫秒，用以模拟眼跳后不同长度的感知窗口。滤波强度则以空间频率截止值来定义，选择了7.8, 15.2, 21.1 cpd 三个水平,其数值的选取与前期标定的castleCSF-TS感知模型中不同时间点的预测阈值相关联。在滤波图像呈现结束后，屏幕上的图像会无缝过渡到未经任何处理的全分辨率版本并保持一段时间。除了上述不同的滤波条件组合外，实验还设置了一个重要的对照条件，即在整个试验过程中图像始终保持全分辨率状态，以此为基准来衡量其他条件引入的感知变化。
+
+在每一次试验结束后，参与者需要完成两项评估任务。第一项是主观感知评价，参与者需使用一个四点式李克特量表，对其在整个图像观察期间所感知到的图像清晰度变化程度进行评分。量表的等级从一至四分别代表“完全无任何变化”、“有微弱变化但不引人注意”、“有较为明显的变化并带来些许干扰”以及“变化非常显著以至于令人无法接受”。第二项是客观视觉辨别任务，该任务随机穿插在部分试验中。在此任务中，系统会连续播放两个图像序列，其中一个序列为经过上述滤波处理的实验序列，另一个则为全程保持全分辨率的对照序列，两个序列的播放顺序经过随机化处理。参与者的任务是判断这两个序列中，哪一个序列的整体画质或清晰度更高。通过这种迫选式的设计，可以获得一个不依赖于主观评价标准的、纯客观的视觉辨别能力度量。
+
+
+表\ref{tab:perceptual_results}汇总了在不同滤波参数组合条件下获得的平均主观评分与平均辨别正确率，并标明了各条件相对于 castleCSF-TS 模型预测的感知阈值曲线的位置关系。
+
+
+\begin{table}[htbp]
+    \centering
+    \caption{不同空间截止频率条件下的主观评分与辨别正确率}
+    \label{tab:perceptual_results}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabularx}{\textwidth}{
+        >{\centering\arraybackslash}m{0.10\textwidth}
+        >{\centering\arraybackslash}m{0.10\textwidth}
+        >{\centering\arraybackslash}m{0.20\textwidth}
+        >{\centering\arraybackslash}m{0.20\textwidth}
+        >{\centering\arraybackslash}m{0.25\textwidth}}
+        \toprule
+        \textbf{空间频率} & \textbf{持续时间} & \textbf{平均主观评分} & \textbf{辨别正确率} & \textbf{与阈值曲线关系} \\
+        \textbf{(cpd)} & \textbf{(ms)} & \textbf{(均值±标准差)} & \textbf{(均值±标准差)} & \textbf{} \\
+        \midrule
+        7.8  & 100 & 2.8 $\pm$ 0.6 & 82.3 $\pm$ 9.1 & 低于阈值 \\
+        7.8  & 200 & 3.0 $\pm$ 0.5 & 87.6 $\pm$ 7.8 & 低于阈值 \\
+        7.8  & 500 & 3.2 $\pm$ 0.4 & 89.7 $\pm$ 6.5 & 低于阈值 \\
+        15.2 & 100 & 2.1 $\pm$ 0.7 & 65.4 $\pm$ 11.2 & 接近阈值 \\
+        15.2 & 200 & 2.3 $\pm$ 0.6 & 68.9 $\pm$ 10.5 & 接近阈值 \\
+        15.2 & 500 & 2.7 $\pm$ 0.5 & 75.2 $\pm$ 9.3 & 低于阈值 \\
+        21.1 & 100 & 1.35 $\pm$ 0.5 & 53.2 $\pm$ 8.7 & 高于阈值 \\
+        21.1 & 200 & 1.4 $\pm$ 0.5 & 54.1 $\pm$ 8.9 & 高于阈值 \\
+        21.1 & 500 & 1.8 $\pm$ 0.6 & 58.3 $\pm$ 9.4 & 高于阈值 \\
+        全分辨率 & - & 1.18 $\pm$ 0.42 & 49.8 $\pm$ 7.2 & - \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+
+从主观评分数据来看，全分辨率基准组的平均评分1.18,标准差为0.42，表明实验设置本身稳定性良好。对于实验组，当滤波参数组合位于或高于 castleCSF-TS 预测的阈值曲线时，与基准组无统计学显著差异。反之，当参数低于阈值曲线时评分显著升高，表明图像失真已跨越感知阈限。
+例如，在空间频率截止值为21.1 cpd且持续时间为100 ms条件下的平均评分为1.35，与对照条件的差异不显著。相反，在空间频率截止值为7.8 cpd条件下，平均主观评分显著升高。
+
+来自客观辨别任务的数据任务进一步印证了上述结论。在高于模型预测阈值的条件下，受试者的辨别正确率均值约为 53.2\%，接近 50\% 的理论随机猜测水平，表明受试者无法在统计意义上区分滤波序列与原序列。而在低于阈值的条件下，辨别正确率迅速跃升至 89.7\%,远高于随机水平。
+
+综上所述，当动态分辨率算法的参数边界被限制在 castleCSF-TS 模型定义的感知阈值内时，系统能够实现完全的感知透明性。该实验结果为模型在实时图形渲染系统中的部署提供了关键的理论支撑与实验依据。
+
+（b）计算高效性验证
+
+在确认感知透明性的基础上，本实验将完整的感知自适应动态分辨率渲染算法集成至实际的虚拟现实渲染管线中，在接近真实应用的动态交互环境下，定量评估其带来的渲染性能提升与计算资源节省，即验证该算法在实际系统中的计算高效性。
+
+本实验基于表\ref{tab:experiment-configuration}所述的高性能软硬件平台构建。渲染核心采用Unity 2022.3 LTS引擎，并将本文第\ref{sec:感知自适应的动态分辨率渲染算法}节所阐述的感知自适应的动态分辨率渲染算法实现为一个可插拔的渲染管线扩展模块。为全面评估算法性能，实验选用两个在几何复杂度、光影效果与动态元素上存在显著差异的虚拟现实测试场景。
+
+第一个测试场景为风格化的中等复杂度静态城镇场景，包含约50万个三角形面片、动态光照和基础阴影效果。该场景代表当前主流虚拟现实应用的典型负载水平。。第二个测试场景则为包含高密度植被、动态水体反射、复杂实时阴影及体积光照效果的高保真森林环境，三角形面片数量超过300万。该场景用以测试算法在极端渲染负载下的性能表现。
+
+为进行系统性的对比分析，每个测试场景均在三种不同的渲染配置模式下运行。第一种配置为全分辨率模式，此模式禁用所有形式的注视点渲染优化，作为性能评估的基准。第二种配置为传统注视点渲染模式，启用基于固定视网膜偏心度衰减模型的静态分辨率优化，代表当前主流的渲染优化技术。第三种配置则为本文方法，即启用完整的感知自适应动态分辨率渲染算法。
+
+实验邀请参与实验 (a) 的同一批 20 名受试者参与，以消除个体感知差异对主观评估的影响。在实验过程中，参与者的任务是在每个测试场景的每种渲染配置下，进行时长为三分钟的自由探索，重点关注环境细节并执行自然的视觉搜索行为。实验过程中，系统记录帧率、GPU利用率等性能指标，并在实验后通过问卷收集主观评价。
+
+表\ref{tab:performance_comparison}展示了高复杂度场景下，三种渲染模式的关键性能指标对比。数据分析表明，本文提出的方法在多项指标上展现出显著优势：
+
+在渲染性能方面，本文方法相比传统注视点渲染实现了9.6\%的帧率提升，从78.2 FPS提升至85.7 FPS，并将 GPU 平均利用率从 $71\%$ 进一步压缩至 $64\%$，同时有效计算节省比（ECSR）从 $0.21$ 提升至 $0.28$，增幅达 $33.3\%$。这意味着在相同视觉质量下，系统能够处理更复杂的场景内容或为其他计算任务释放更多资源。
+
+\begin{table}[htbp]
+    \centering
+    \caption{高复杂度场景（森林）下不同渲染模式性能对比}
+    \label{tab:performance_comparison}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabularx}{\textwidth}{
+        >{\centering\arraybackslash}m{0.25\textwidth}
+        >{\centering\arraybackslash}m{0.20\textwidth}
+        >{\centering\arraybackslash}m{0.25\textwidth}
+        >{\centering\arraybackslash}m{0.20\textwidth}}
+        \toprule
+        \textbf{性能指标} & \textbf{全分辨率模式} & \textbf{传统注视点渲染模式} & \textbf{本文方法} \\
+        \midrule
+        平均帧率（FPS） & $65.4 \pm 3.2$ & $78.2 \pm 2.8$ & $85.7 \pm 2.4$ \\
+        GPU平均利用率（\%） & $89 \pm 4$ & $71 \pm 3$ & $64 \pm 2$ \\
+        有效计算节省比（ECSR） & $0.00$ & $0.21 \pm 0.02$ & $0.28 \pm 0.03$ \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+
+在主观评价分析方面，实验结束后对参与者进行了问卷调查。问卷采用5点李克特量表（1分表示非常差，5分表示非常好）收集参与者在三个维度上的主观评分：视觉质量、流畅度和整体体验。每个维度下，参与者需对三种渲染模式分别评分。
+
+表\ref{tab:subjective_rating}汇总了十二名参与者的平均评分及标准差。
+在视觉质量维度，三种渲染模式的评分无显著差异，表明本文方法在显著提升渲染性能的同时，并未引入可察觉的视觉质量下降。
+在流畅度与整体体验维度，本文方法分别获得 $4.6$ 与 $4.7$ 的最高评分，且显著优于对照组，进一步证实了该算法在提升用户体验方面的有效性。
+
+\begin{table}[htbp]
+    \centering
+    \caption{主观评价评分结果}
+    \label{tab:subjective_rating}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabularx}{\textwidth}{
+        >{\centering\arraybackslash}m{0.25\textwidth}
+        >{\centering\arraybackslash}m{0.20\textwidth}
+        >{\centering\arraybackslash}m{0.25\textwidth}
+        >{\centering\arraybackslash}m{0.20\textwidth}}
+        \toprule
+        \textbf{评价维度} & \textbf{全分辨率模式} & \textbf{传统注视点渲染模式} & \textbf{本文方法} \\
+        \midrule
+        视觉质量 & $4.3 \pm 0.6$ & $4.4 \pm 0.5$ & $4.5 \pm 0.4$ \\
+        流畅度   & $3.5 \pm 0.7$ & $4.2 \pm 0.6$ & $4.6 \pm 0.5$ \\
+        整体体验 & $3.8 \pm 0.6$ & $4.3 \pm 0.5$ & $4.7 \pm 0.4$ \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+综合主客观评价结果，本文提出的感知自适应动态分辨率渲染算法在维持视觉质量的同时，显著提升了渲染性能与用户体验流畅度，验证了其在实际虚拟现实系统中的实用价值。
+
+
+
+
+\section{本章小结}
+本章针对现有注视点渲染技术在动态视觉场景中存在的时序感知利用不足与多维视觉建模缺失的问题，提出了基于眼跳效应的注视点渲染方法。主要研究工作与结论如下：
+
+（1）系统剖析了传统注视点渲染的局限性：指出其在时序维度上未能有效利用扫视抑制及眼跳后视觉敏感度恢复的生理窗口，导致渲染冗余；同时指出其依赖的静态感知模型难以准确刻画多维度动态变化的视觉敏感度。
+
+（2）构建了融合眼跳效应的多维视觉感知模型：castleCSF-TS：该模型在传统CSF 模型基础上，显式引入了扫视时间动态性调制函数，综合集成颜色、刺激面积、时空频率、亮度、视网膜偏心度等多维参数，实现了对眼跳后视觉敏感度动态恢复过程的量化描述。
+
+（3）提出了感知自适应的动态分辨率渲染算法：通过高精度眼动事件检测界定扫视窗口与恢复窗口，并依据castleCSF-TS模型实时预测的感知临界频率，动态映射并平滑调整中央凹及周边区域的分辨率，实现了渲染负载与瞬时视觉感知能力的精准对齐。
+
+（4）设计了系统的实验验证体系：通过心理物理实验标定并验证了模型的时间恢复函数参数；在多种复杂度的VR场景中对该方法进行了主客观性能评估。实验结果表明，所提方法在保持视觉感知质量无显著损失的前提下，有效提升了渲染帧率，降低了GPU负载，验证了其在提升渲染效率与系统能效方面的可行性与有效性。
+
+本章工作将注视点渲染的优化维度从单一空间域扩展至多维时空联合域，为高帧率、低延迟的沉浸式VR/AR渲染提供了新的技术思路。

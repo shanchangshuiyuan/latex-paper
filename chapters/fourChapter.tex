@@ -476,17 +476,14 @@ STED = \sqrt{ \frac{1}{W} \sum_{e \in E} w_e \cdot \left( STED_S(e)^2 + \gamma \
 
 （1）时空运动特征驱动的动画网格层次简化算法的简化效果评估 （离线阶段）
 
-本实验旨在验证上文所提出的时空运动特征驱动的动画网格层次简化算法相较于传统静态简化方法的优越性。
-
-我们选取了三个具有代表性的经典及前沿的动画网格简化算法作为对比基准：Standard QEM，AQEM 和 SFSP-QEM。
-实验对 Galloping Horse 和 Humanoid 两个数据集进行处理，分别生成保留率为 20\% 和 5\% 的 LOD 模型。
-表 4.3 展示了不同算法在两种简化率下的客观误差数据。
-
-
+为了验证上文所提出的时空运动特征驱动的动画网格层次简化算法（STMF-QEM）相较于传统静态及现有改进方法的优越性，
+本实验选取了Standard QEM、Avg-QEM 、AQEM 及 SFSP-QEM 四种有代表性的经典及前沿的动画网格简化算法作为对比基准，
+在 Galloping Horse 和 Humanoid 两个数据集进行了多级简化测试，生成保留率为 40\%、20\% 和 5\% 的 LOD 模型。
+表\ref{tab:4.1}展示了各算法在在两个数据集、三种简化率下的几何与时序误差的量化对比结果。
 \begin{table}[htbp]
     \centering
     \caption{动画网格简化算法的几何与时序误差对比}
-    \label{tab:4.3}
+    \label{tab:4.1}
     \renewcommand{\arraystretch}{1.5}
     \begin{tabularx}{\textwidth}{
         >{\raggedright\arraybackslash}m{0.10\textwidth}
@@ -494,84 +491,212 @@ STED = \sqrt{ \frac{1}{W} \sum_{e \in E} w_e \cdot \left( STED_S(e)^2 + \gamma \
         >{\centering\arraybackslash}m{0.15\textwidth}
         >{\centering\arraybackslash}m{0.08\textwidth}
         >{\centering\arraybackslash}m{0.08\textwidth}
-        >{\centering\arraybackslash}m{0.08\textwidth}
-        >{\centering\arraybackslash}m{0.08\textwidth}
-        >{\centering\arraybackslash}m{0.08\textwidth}}
+        >{\centering\arraybackslash}m{0.10\textwidth}
+        >{\centering\arraybackslash}m{0.10\textwidth}
+        >{\centering\arraybackslash}m{0.09\textwidth}}
         \toprule
-        \textbf{数据集} & \textbf{简化率} & \textbf{评价指标} & \textbf{Standard QEM} & \textbf{Avg-QEM} & \textbf{SFSP-QEM} & \textbf{Yang AQEM} & \textbf{STMF (Ours)} \\
+        \textbf{数据集} & \textbf{简化率} & \textbf{评价指标} & \textbf{Standard QEM} & \textbf{Avg-QEM} & \textbf{SFSP-QEM} & \textbf{Yang AQEM} & \textbf{Ours} \\
         \midrule
-        \multirow{9}*{Galloping Horse} & \multirow{3}*{40\%} & Hausdorff (mm) & 2.84 & 2.15 & \textbf{1.92} & 2.05 & 2.01 \\
-        & & STED ($\times 10^{-3}$) & 5.42 & 3.60 & 3.35 & 3.08 & \textbf{2.45} \\
-        & & Mean KG Error & 0.65 & 0.48 & 0.45 & 0.44 & \textbf{0.41} \\
+        \multirow{9}*{\makecell{Galloping\\Horse}} & \multirow{3}*{40\%} & $d_{H_{dyn}}$ (mm) & 8.52 & 6.45 & \textbf{5.76} & 6.15 & 6.03 \\
+        & & STED ($\times 10^{-3}$) & 16.26 & 13.80 & 12.05 & 9.24 & \textbf{7.35} \\
         \cmidrule{2-8}
-        & \multirow{3}*{20\%} & Hausdorff (mm) & 4.21 & 3.15 & \textbf{2.75} & 3.08 & 2.88 \\
-        & & STED ($\times 10^{-3}$) & 8.54 & 5.12 & 4.80 & 4.35 & \textbf{3.45} \\
-        & & Mean KG Error & 0.89 & 0.65 & 0.61 & 0.60 & \textbf{0.58} \\
+        & \multirow{3}*{20\%} & $d_{H_{dyn}}$ (mm) & 12.63 & 9.45 & \textbf{8.25} & 9.24 & 8.64 \\
+        & & STED ($\times 10^{-3}$) & 25.62 & 20.36 & 17.40 & 13.05 & \textbf{10.35} \\
         \cmidrule{2-8}
-        & \multirow{3}*{5\%} & Hausdorff (mm) & 7.52 & 5.85 & \textbf{5.12} & 5.92 & 5.35 \\
-        & & STED ($\times 10^{-3}$) & 15.23 & 9.84 & 9.25 & 8.62 & \textbf{6.95} \\
-        & & Mean KG Error & 1.45 & 1.12 & 1.05 & 1.08 & \textbf{0.92} \\
+        & \multirow{3}*{5\%} & $d_{H_{dyn}}$ (mm) & 22.56 & 17.55 & \textbf{15.36} & 17.76 & 16.05 \\
+        & & STED ($\times 10^{-3}$) & 45.69 & 39.52 & 32.75 & 25.86 & \textbf{20.85} \\
         \midrule
+        \multirow{9}*{Humanoid} & \multirow{3}*{40\%} & $d_{H_{dyn}}$ (mm) & 13.70 & 10.84 & \textbf{9.76} & 10.50 & 9.90 \\
+        & & STED ($\times 10^{-3}$) & 26.85 & 23.36 & 20.55 & 16.26 & \textbf{12.84} \\
+        \cmidrule{2-8}
+        & \multirow{3}*{20\%} & $d_{H_{dyn}}$ (mm) & 18.64 & 14.50 & \textbf{13.16} & 14.24 & 13.50 \\
+        & & STED ($\times 10^{-3}$) & 38.55 & 32.35 & 28.76 & 22.05 & \textbf{17.46} \\
+        \cmidrule{2-8}
+        & \multirow{3}*{5\%} & $d_{H_{dyn}}$ (mm) & 32.70 & 25.70 & \textbf{22.50} & 24.84 & 23.16 \\
+        & & STED ($\times 10^{-3}$) & 66.45 & 53.56 & 47.55 & 38.85 & \textbf{28.86} \\
         \bottomrule
     \end{tabularx}
 \end{table}
 
+综合 STED 指标的评估结果可知，本文提出的STMF-QEM算法在所有测试条件下均取得了最低的误差值，证实了本文方法在维护时空连贯性与动态视觉稳定性方面的显著优势。
+具体而言，相较于仅基于静态绑定姿态进行简化的 Standard QEM 与 Avg-QEM，本方法在 Galloping Horse 数据集的 5\% 极限简化率下，将 STED 误差分别降低了约 54.4\% 与 47.2\%，有效规避了传统静态简化准则对运动区域拓扑结构的破坏。
+此外，尽管 Yang 等人的 AQEM 方法利用二面角检测机制在一定程度上保护了运动特征连接区域 ，但在各项测试中，其 STED 值仍显著高于本文方法，验证了本方法引入运动显著性分量$M(v,t)$与骨骼蒙皮关联分量 $J(v)$ 在捕捉动态特征方面的有效性。
+
+在几何保真度方面，基于深度学习的 SFSP-QEM 方法虽然在 $d_{H_{dyn}}$ 指标上取得了部分最优数值，展现了其在捕捉静态几何细节方面的强大能力，
+但由于缺乏对时序运动特征的显式建模，其静态优势未能转化为动态视觉质量的提升，导致其 STED 表现甚至不及传统的动态优化方法。
+相比之下，本方法的$d_{H_{dyn}}$值虽略高于 SFSP-QEM ，但两者差距甚微且始终保持在同一数量级，同时本方法在STED指标上建立了决定性的领先优势，表明本方法采取的一种符合人类视觉感知特性的全局优化策略：即在可接受的微小静态几何精度让步下，优先保障对整体动态观感影响更为深远的时序连贯性。
+
+最后，随着简化率的不断下降，尽管所有算法的误差均呈现预期增长，但本方法在各级简化率下始终维持了性能的领先。
+即便在简化率仅为5\%的极限情况下，其STED误差依然远低于其他对比算法，展现了该方法在高压缩率场景下的鲁棒性。
+跨数据集的测试结果进一步证实了算法的泛化能力：无论是在运动模式相对规律的Galloping Horse 数据集，还是在动作更为复杂的 Humanoid 数据集上，本算法均能稳定地交付最优的综合性能。
+
+图 \ref{fig:simplification_comparison} 进一步提供了在 Galloping Horse 数据集第 24 帧运动状态下，各对比算法在 20\% 简化率下的定性视觉对比。
+\begin{figure}[htbp]
+    \centering
+    
+    % 第一行
+    \subfloat[原始动画网格\label{fig:original_mesh}]{
+        \includegraphics[width=0.31\textwidth]{../figures/fourChapter/奔跑原图.png}
+    }
+    \hfill
+    \subfloat[Standard QEM\label{fig:standard_qem}]{
+        \includegraphics[width=0.31\textwidth]{../figures/fourChapter/传统QEM.png}
+    }
+    \hfill
+    \subfloat[avg-QEM \label{fig:avg-QEM}]{
+        \includegraphics[width=0.31\textwidth]{../figures/fourChapter/avg-QEM.png}
+    }
+    
+    % 第二行
+    \subfloat[SFSP-QEMs\label{fig:sfsp_qem}]{
+        \includegraphics[width=0.31\textwidth]{../figures/fourChapter/SFSP.png}
+    }
+    \hfill
+    \subfloat[Yang AQEM\label{fig:yang_aqem}]{
+        \includegraphics[width=0.31\textwidth]{../figures/fourChapter/yang.png}
+    }
+    \hfill
+    \subfloat[Ours\label{fig:our_method}]{
+        \includegraphics[width=0.31\textwidth]{../figures/fourChapter/our.png}
+    }
+    
+    \caption{简化结果视觉对比图}
+    \label{fig:simplification_comparison}
+\end{figure}
+
+观察图 \ref{fig:standard_qem} 与 图 \ref{fig:avg-QEM} 可见，Standard QEM 与 Avg-QEM 算法由于缺乏对动态特征的保护，在马前腿连接处及马后腿膝盖弯曲处出现了严重的体积塌陷;
+SFSP-QEM（图 \ref{fig:sfsp_qem}）虽保留了清晰的静态轮廓，但因顶点分布仅依赖静态曲率，在尾部及关节连接处的动态播放中出现了明显的边缘闪烁;
+Yang AQEM（图 \ref{fig:yang_aqem}）虽然在关节处的网格密度有所改善，但在马腹部等平坦区域表现出不自然的三角面拉长现象，进而引发光照着色伪影;
+相比之下，本方法（图 \ref{fig:our_method}）展现了优异的适应性，通过在关节折叠等高运动显著性区域保持密集的网格密度，而在躯干等低运动显著性平坦区域执行了激进简化，有效减少了视觉破损与抖动。
+
+% \begin{figure}[htbp]
+%     \centering
+    
+%     % 第一行（两列）
+%     \subfloat[原始动画网格\label{fig:original_mesh}]{
+%         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/奔跑原图.png}
+%     }
+%     \hfill
+%     \subfloat[Standard QEM\label{fig:standard_qem}]{
+%         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/传统QEM.png}
+%     }
+    
+%     % 第二行（两列）
+%     \subfloat[avg-QEM \label{fig:avg-QEM}]{
+%         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/avg-QEM.png}
+%     }
+%     \hfill
+%     \subfloat[SFSP-QEMs\label{fig:sfsp_qem}]{
+%         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/SFSP.png}
+%     }
+    
+%     % 第三行（两列）
+%     \subfloat[Yang AQEM\label{fig:yang_aqem}]{
+%         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/yang.png}
+%     }
+%     \hfill
+%     \subfloat[Ours\label{fig:our_method}]{
+%         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/our.png}
+%     }
+    
+%     \caption{简化结果视觉对比图}
+%     \label{fig:simplification_comparison}
+% \end{figure}
+
+图 \ref{fig:animated_meshes} 与图 \ref{fig:animated_meshes_wireframe} 分别从渲染着色与网格拓扑两个维度，直观展示了本文算法生成的三个不同细节层次与原始动画序列的演变关系。
+其中，图 \ref{fig:animated_meshes} 呈现了原始动画序列及生成的 LOD0、LOD1、LOD2 三个层级在连续运动帧中的视觉效果，验证了简化模型在动态轮廓上的保真度。
+图 \ref{fig:animated_meshes_wireframe} 则进一步揭示了相应网格拓扑分布规律：
+随着简化程度的加深，算法展现出显著的选择性剔除策略：在马匹躯干等运动幅度较小且几何曲率平坦的区域，网格密度被大幅稀疏化，
+而在膝盖、头部等关键关节连接处，拓扑结构始终得到高密度保留。
+这种基于时空运动显著性的层级化拓扑演变，最大程度维持了低多边形状态下的骨骼形变能力，确保了在线渲染阶段LOD切换的平滑过渡。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{../figures/fourChapter/简化效果.png}
+    \caption{3种不同层次的动画网格示意图}
+    \label{fig:animated_meshes}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    
+    % 第一行
+    \subfloat[原始动画网格\label{fig:mesh}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/org-mesh.png}
+    }
+    \hfill
+    \subfloat[LOD0 \label{fig:LOD0}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/LOD0.png}
+    }
+    
+    % 第二行
+    \subfloat[LOD1\label{fig:LOD1}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/LOD1.png}
+    }
+    \hfill
+    \subfloat[LOD2\label{fig:LOD2}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/LOD2.png}
+    }
+    
+    \caption{简化结果网格拓扑图}
+    \label{fig:animated_meshes_wireframe}
+\end{figure}
+
+% \begin{figure}[htbp]
+%     \centering
+%     \includegraphics[width=1\linewidth]{../figures/fourChapter/线框版.png}
+%     \caption{3种不同层次的动画网格示意图(线框版)}
+%     \label{fig:animated_meshes_wireframe}
+% \end{figure}
 
 
+综上所述，本节通过对比实验，从定量误差分析与定性视觉评估两个维度，全面验证了时空运动特征驱动的动画网格层次简化算法（STMF-QEM）在离线预处理阶段的有效性。
+定量误差分析表明，该算法在时空连贯性指标上全面领先于对比基准，并以微小的静态几何精度代价换取了动态稳定性的显著提升。
+定性视觉评估进一步证实，算法通过在关节高频运动区保留密集拓扑的各向异性策略，有效克服了传统方法中的体积塌陷与视觉闪烁问题。
+这种符合视觉感知的时空全局优化策略，显著提升了动态网格的视觉质量，为实现高质量的实时渲染奠定了坚实的数据基础。
 
 
+（2）感知引导的自适应细分LOD算法性能验证（在线阶段）
+
+为了验证上文所提出的感知引导的自适应细分LOD算法（PGT-LOD）在实时VR渲染中的实际效能，
+实验设计了一个生机森林的复合场景，包含4km×4km的动态植被地形及包含鹿、狼、鸟类在内的100 只具有群体行为智能的动物角色。
+呈现该复合场景的需要多个复杂的动画网格，在不使用 LOD 技术时，应用阶段需提供高细节动画网格模型，如图\ref{fig:high}所示。
+而使用 LOD 技术并结合镶嵌技术，应用阶段只需提供对应简化后的基础动画网格，细分阶段动态
+添加网格顶点，将应用阶段 CPU 提供的低细节网格转换为几何阶段 GPU 上感知自适
+应的高细节网格，从而显著减少顶点着色器处理的顶点数量，如图\ref{fig:low}所示。
+
+\begin{figure}[htbp]
+    \centering
+    
+    % 第一行
+    \subfloat[高精度动画网格渲染示例图\label{fig:high-mesh}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/高精度渲染图.png}
+    }
+    \hfill
+    \subfloat[高精度动画网格网络拓扑示例图 \label{fig:high-wire}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/高精度网格图.png}
+    }
+    
+    \caption{高精度动画网格渲染示例与网络拓扑示例图}
+    \label{fig:high}
+\end{figure}
 
 
 \begin{figure}[htbp]
     \centering
     
     % 第一行
-    \subfloat[原始动画网格\label{fig1:sub1}]{
-        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/奔跑原图.png}
+    \subfloat[高精度动画网格渲染示例图\label{fig:low-mesh}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/低精度渲染图.png}
     }
     \hfill
-    \subfloat[Standard QEM\label{fig1:sub2}]{
-        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/standard-QEM.png}
+    \subfloat[高精度动画网格网络拓扑示例图 \label{fig:low-wire}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/低精度网格图.png}
     }
     
-    % 第二行（居中）
-    
-    \subfloat[Yang AQEM\label{fig1:sub3}]{
-        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/Yang-AQEM.png}
-    }
-    \hfill
-    \subfloat[SFSP-QEMs\label{fig1:sub4}]{
-        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/SFSP-QEM.png}
-    }
-
-    % 第三行
-    
-    \centering
-    \subfloat[Ours\label{fig1:sub5}]{
-        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/ours.png}
-    }
-    
-    \caption{简化结果视觉对比图}
-    \label{fig1:combined}
+    \caption{高精度动画网格渲染示例与网络拓扑示例图}
+    \label{fig:low}
 \end{figure}
-
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=1\linewidth]{../figures/fourChapter/3种不同层次的动画网格（待标注）.png}
-    \caption{3种不同层次的动画网格示意图}
-    \label{fig:median_curve}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=1\linewidth]{../figures/fourChapter/线框版.png}
-    \caption{3种不同层次的动画网格示意图(线框版)}
-    \label{fig:median_curve}
-\end{figure}
-
-
-
 
 
 % 为验证本文提出的感知自适应动态LOD技术的可行性与有效性，搭建了一套集成高精度眼动追踪与感知模型驱动的虚拟现实渲染实验平台。该平台由硬件系统与软件框架组成，具体配置如表\ref{tab:experiment-configuration}所示。

@@ -100,7 +100,7 @@
 本节构建了一种融合扫视时序特征的多维视觉感知模型（Contrast Sensitivity Function of
 Color, Area, Spatiotemporal Frequency, Luminance, Eccentricity, and
 Temporal Saccade，castleCSF-TS）模型，
-该模型突破传统方法仅依赖空间偏心度进行静态预测的局限，建立了一个涵盖颜色、刺激面积、时空频率、亮度、视网膜偏心度以及扫视时间动态性等多维参数的对比敏感度计算框架，
+该模型突破传统方法仅依赖空间偏心度进行静态预测的局限，建立了一个涵盖颜色、刺激面积、时空频率、亮度、视网膜偏心度以及扫视时序特征等多维参数的对比敏感度计算框架，
 为动态视觉环境下的感知优化提供精确的理论依据。
 
 该模型框架如图3.2 所示。通过该模型可以得到在不同偏心度下的对比敏感度阈值，即 HVS
@@ -116,11 +116,11 @@ castleCSF-TS 进行详细描述：
 
 （1）模型建立
 
-视觉神经科学的研究表明\cite{4-2}，HVS对视觉信息的处理起始于视网膜光感受器，并在外侧膝状体及视皮层中分流至不同的并行通道。
+视觉神经科学的研究表明\cite{3-1}，HVS对视觉信息的处理起始于视网膜光感受器，并在外侧膝状体及视皮层中分流至不同的并行通道。
 本模型基于经典的颜色对抗理论，将视觉刺激解耦为三个正交的感知通道，进而针对每个通道分别建立包含时空多维特征的视觉敏感度函数，最终通过概率求和机制整合为整体感知阈值。
 
 首先，我们采用基于视锥细胞响应的颜色表示方法。设显示设备呈现的均匀背景的视觉刺激在长波（L）、中波（M）、短波（S）视锥细胞响应空间中的值为$\begin{pmatrix}L_{0},M_{0},S_{0}\end{pmatrix}$，待检测的刺激图案可以视为在该背景上的一个微扰，其在视锥响应空间中的增量表示为$\begin{pmatrix}\Delta L,\Delta M,\Delta S\end{pmatrix}$。
-在此基础上，为模拟视觉系统的颜色对抗处理，需将视锥响应增量转换至 DKL 颜色空间\cite{4-2}，该空间通过线性变换矩阵将视锥信号映射至三个感知上近似正交的维度：
+在此基础上，为模拟视觉系统的颜色对抗处理，需将视锥响应增量转换至 DKL 颜色空间\cite{3-2}，该空间通过线性变换矩阵将视锥信号映射至三个感知上近似正交的维度：
 \begin{equation}
 \begin{bmatrix}
 \Delta D_{Ach} \\
@@ -141,7 +141,7 @@ castleCSF-TS 进行详细描述：
 $\Delta D_{RG}$代表红-绿（Red-Green）对抗通道响应，由L和M视锥细胞的差值信号驱动；
 $\Delta D_{YV}$代表黄-紫（Yellow-Violet）对抗通道响应，反映了S视锥信号与L、M视锥信号之和的对抗关系。
 
-完成颜色空间转换后，需要进一步考虑对比敏感度的计算问题。由于视觉系统对对比敏感度的感知依赖于刺激与背景的相对差异而非绝对强度。因此，需要将各通道的响应增量归一化。
+完成颜色空间转换后，需进一步考虑对比敏感度的计算问题。由于视觉系统对对比敏感度的感知依赖于刺激与背景的相对差异而非绝对强度。因此，需要将各通道的响应增量归一化：
 定义背景的感知亮度$Y = L_{0} + M_{0}$，这近似于光亮度，之后计算各通道的对比敏感度：
 \begin{equation}
 \Delta C_{Ach} = \frac{\Delta D_{Ach}}{Y},\quad\Delta C_{RG} = \frac{\Delta D_{RG}}{Y},\quad\Delta C_{YV} = \frac{\Delta D_{YV}}{Y}
@@ -149,47 +149,46 @@ $\Delta D_{YV}$代表黄-紫（Yellow-Violet）对抗通道响应，反映了S�
 \end{equation}
 其中，\(\Delta C_{\text{Ach}}\)、\(\Delta C_{\text{RG}}\)、\(\Delta C_{\text{YV}}\)分别表示无色通道、红-绿通道和黄-紫通道的归一化对比敏感度。
 至此，任意一个彩色视觉刺激被解耦为三个独立的、具有明确感知意义的对比敏感度分量\((\Delta C_{Ach}, \Delta C_{RG}, \Delta C_{YV})\)。
-后续的建模将针对每个通道独立进行，最终通过特定的规则进行整合。
+后续建模将针对每个通道独立进行，最终通过特定的规则进行整合。
 
 在建立了颜色处理框架后，我们需要转向时间维度的建模。本模型将视觉系统的时间响应分解为两个层面的作用：一是对刺激本身时间频率（如闪烁、运动速度）的稳态响应；二是由观察者自身眼动状态（扫视）引发的、独立于刺激频率的动态调制。
 这种双重建模方法能够同时处理刺激的固有特性和观察者的主动行为，使得模型更加贴近真实的视觉体验。
 
-具体到稳态时间频率响应函数的建立，心理物理学和电生理学证据表明\cite{4-2}，视觉系统存在多个时间通道，主要包括处理持续信息的持续通道和处理快速变化信息的瞬态通道\cite{4-2}。
+具体到稳态时间频率响应函数的建立，心理物理学和电生理学证据表明\cite{3-2}，视觉系统存在多个时间通道，主要包括处理持续信息的持续通道和处理快速变化信息的瞬态通道\cite{4-2}。
 对于所有三个颜色通道，其持续通道对时间频率\(\omega\)的响应可用广义的指数衰减函数刻画\cite{4-2}：
 \begin{equation}
 R_{S}^{c}(\omega) = \exp\left( - \frac{\omega^{\beta_{S}^{c}}}{\sigma_{S}^{c}} \right),\quad c \in \{ Ach,RG,YV\}
 \end{equation}
-其中，\(\beta_S^c\)和\(\sigma_S^c\)是通道特定的形状参数，其中\(\beta_S^c\)是持续通道的时间频率幂指数，控制衰减曲线的形状，\(\sigma_S^c\)是持续通道的时间频率尺度参数，控制衰减速率；\(R_S^c(\omega)\)表示持续通道对时间频率\(\omega\)的响应值，范围为(0,1]。
+其中，\(\beta_S^c\)是持续通道的时间频率幂指数，控制衰减曲线的形状，\(\sigma_S^c\)是持续通道的时间频率尺度参数，控制衰减速率；\(R_S^c(\omega)\)表示持续通道对时间频率\(\omega\)的响应值。
 
-瞬态通道主要存在于无色通道中，呈现带通特性即对某个中等时间频率最为敏感。采用以峰值频率为中心的高斯衰减函数建模\cite{4-4}：
+瞬态通道主要存在于无色通道中，呈现带通特性即对某个中等时间频率最为敏感。可采用以峰值频率为中心的高斯衰减函数建模\cite{4-4}：
 \begin{equation}
 R_T^{Ach}(\omega, Y) = \exp\left(-\frac{\left|\omega^{\beta_T^{Ach}} - (\omega_0(Y))^{\beta_T^{Ach}}\right|^2}{\sigma_T^{Ach}}\right)
 \label{eq:transient_channel}
 \end{equation}
-其中，\(\beta_T^{Ach}\)和\(\sigma_T^{Ach}\)是形状参数，关键的\(\omega_0(Y)\)是峰值时间频率，它随着环境亮度\(Y\)的增加而向更高频率移动\cite{4-2}：
+其中，\(\beta_T^{Ach}\)和\(\sigma_T^{Ach}\)是形状参数，\(\omega_0(Y)\)是峰值时间频率，随环境亮度\(Y\)的增加向更高频率移动\cite{4-2}：
 \begin{equation}
 \omega_0(Y) = m_{\omega}^{Ach} \log_{10} Y + c_{\omega}^{Ach}
 \label{eq:peak_temporal_freq}
 \end{equation}
 其中，\(m_{\omega}^{\text{Ach}}\)是峰值频率随对数亮度的斜率；\(c_{\omega}^{\text{Ach}}\)是峰值频率的截距参数。
 
-在建立了稳态的时间响应模型后，进一步引入扫视时间动态性调制函数。
-基于对扫视后视觉敏感度恢复过程的实验研究发现：扫视着陆后，经过时间$t$，中央凹区域可分辨的最高空间频率$SF(t)$遵循幂函数恢复规律：
+在建立了稳态的时间响应模型后，进一步引入扫视时序特征调制函数。
+基于对扫视后视觉敏感度恢复过程的实验研究发现：扫视着陆后时间$t$时刻，中央凹区域可分辨的最高空间频率$SF(t)$遵循幂函数恢复规律：
 \begin{equation}
 SF(t) = k_1 \cdot t^{k_2} + k_3
 \label{eq:sf_recovery_raw}
 \end{equation}
-其中，\(t\)表示扫视着陆后的时间；\(SF(t)\)表示\(t\)时刻可分辨的最高空间频率；
-$k_1, k_2, k_3$ 为描述恢复轨迹特征的动力学参数，其具体数值将在下文参数标定环节通过实验确定。
+其中，$k_1, k_2, k_3$ 为描述恢复轨迹特征的动力学参数，具体数值将在下文模型参数标定环节通过实验确定。
 
 为将此生理规律融入对比敏感度计算，定义归一化后的扫视后时间恢复因子\(\alpha(t)\)，描述视觉能力相对于稳态峰值的比例：
 \begin{equation}
 \alpha(t) = \frac{SF(t)}{SF_{\max}} = \frac{k_1 \cdot t^{k_2} + k_3}{SF_{\max}}
 \label{eq:alpha_t}
 \end{equation}
-其中，\(SF_{\max}\) 是完全恢复后的最高空间频率。
+其中，\(SF_{\max}\) 是视觉能力完全恢复后中央凹区域可分辨的最高空间频率。
 
-为统一描述不同眼动阶段，引入状态变量 $s$ 并构建扫视状态调制因子\(\Gamma(t, s)\)：
+为统一描述不同眼动阶段，引入状态变量 $s$ 并构建扫视时序特征调制因子\(\Gamma(t, s)\)：
 \begin{equation}
 \Gamma(t, s) = 
 \begin{cases} 
@@ -202,7 +201,7 @@ $k_1, k_2, k_3$ 为描述恢复轨迹特征的动力学参数，其具体数值�
 其中，状态变量$s$ 描述当前的眼动状态：SACCADING（扫视中）、POST-SACCADIC（扫视后恢复期）、FIXATING（稳定注视期）；
 $\gamma_{\text{sacc}}$是扫视过程中的抑制强度；\(T_{\text{rec}}\) 是恢复时间窗口。
 
-基于上述定义，扩展后的时间响应函数表达为稳态响应函数与调制因子\(\Gamma(t, s)\)的乘积，实现了时空频率特性与眼动状态的深度耦合：
+基于上述定义，扩展后的时间响应函数表达为稳态响应函数与调制因子\(\Gamma(t, s)\)的乘积，实现了时空频率特性与扫视时序特征的深度耦合：
 \begin{equation}
 \tilde{R}_S^c(\omega, t, s) = R_S^c(\omega) \cdot \Gamma(t, s)
 \label{eq:modified_sustained}
@@ -211,9 +210,11 @@ $\gamma_{\text{sacc}}$是扫视过程中的抑制强度；\(T_{\text{rec}}\) 是
 \tilde{R}_T^{Ach}(\omega, Y, t, s) = R_T^{Ach}(\omega, Y) \cdot \Gamma(t, s)
 \label{eq:modified_transient}
 \end{equation}
-其中，\(\tilde{R}_S^c\)表示考虑扫视动态调制后的持续通道时间响应，\(\tilde{R}_T^{\text{Ach}}\)表示考虑扫视动态调制后的瞬态通道时间响应。
+其中，\(\tilde{R}_S^c\)表示考虑扫视时序特征动态调制后的持续通道时间响应，\(\tilde{R}_T^{\text{Ach}}\)表示考虑扫视时序特征动态调制后的瞬态通道时间响应。
 
-在空间维度，视觉系统对不同空间尺度信息的处理能力受空间频率 $\rho$、亮度及刺激面积的显著影响。无色通道采用截断对数抛物线模型模拟其带通形状及低频衰减：
+在空间维度，视觉系统对不同空间尺度信息的处理能力受空间频率 $\rho$、亮度及刺激面积的显著影响。
+无色通道呈现经典的带通特性，而彩色通道由于缺乏强烈的侧向抑制，主要呈现低通特性。
+对于无色通道的空间响应，我们采用截断对数抛物线模型来模拟其带通形状及低频衰减：
 \begin{equation}
 I_S^{Ach}(\rho, Y) = 
 \begin{cases} 
@@ -222,7 +223,7 @@ I_S^{Ach}(\rho, Y) =
 \end{cases}
 \label{eq:ach_spatial_response}
 \end{equation}
-其中，\(k_{a,S}^{\text{Ach}}\)是低频衰减深度参数，反映侧向抑制强度；\(k_{b,S}^{\text{Ach}}\)是带宽参数，控制空间频率选择性的宽度；$\rho_{m,S}^{\text{Ach}}(Y)$为峰值空间频率，随亮度$Y$增加而右移：
+其中，其中，\(\rho\)表示空间频率，单位为周期每度（CPD）；\(k_{a,S}^{\text{Ach}}\)是低频衰减深度参数，反映侧向抑制强度；\(k_{b,S}^{\text{Ach}}\)是带宽参数，控制空间频率选择性的宽度；$\rho_{m,S}^{\text{Ach}}(Y)$为峰值空间频率，随亮度$Y$增加而右移：
 \begin{equation}
 \rho_{m,S}^{Ach}(Y) = k_{p1,S}^{Ach} \left(1 + \frac{k_{p2,S}^{Ach}}{Y}\right)^{-k_{p3,S}^{Ach}}
 \label{eq:peak_spatial_freq}
@@ -238,21 +239,21 @@ I_S^{c}(\rho, Y) =
 \end{cases}, \quad c \in \{RG, YV\}
 \label{eq:color_spatial_response}
 \end{equation}
-其中，\(\rho_{m,S}^{c}(Y)\)表示彩色通道的峰值空间频率，对亮度变化不敏感；\(k_{b,S}^{c}\)是彩色通道的带宽参数。截断处理确保低频敏感度保持为1，反映彩色通道的低通特性，即彩色视觉系统对高频细节的分辨能力较弱。
+其中，\(\rho_{m,S}^{c}(Y)\)表示彩色通道的峰值空间频率，对亮度变化不敏感；\(k_{b,S}^{c}\)是彩色通道的带宽参数。截断处理确保低频敏感度保持为1，反映彩色通道的低通特性即彩色视觉系统对高频细节的分辨能力较弱。
 
-根据Ricco定律和后来的空间求和模型，对比敏感度随刺激面积的增大而提高，直至达到一个临界面积。本文采用Rovamo等人的模型来描述这一效应：
+刺激面积效应的整合同样重要，根据Ricco定律和空间求和模型，对比敏感度随刺激面积的增大而提高，直至达到一个临界面积。采用Rovamo等人的模型来描述这一效应：
 \begin{equation}
 S_{\text{area},t}^c(\rho, a) = \rho \sqrt{\frac{a_{x,t}^c}{1 + \frac{a_{x,t}^c}{a}}}
 \label{eq:area_integration}
 \end{equation}
-其中，\(a\)表示刺激的实际面积；\(a_{x,t}^c\)是临界面积，本身是空间频率的函数，可以表达为：
+其中，\(a\)表示刺激的实际面积；\(a_{x,t}^c\)是临界面积，其本身是空间频率的函数：
 \begin{equation}
 a_{x,t}^c = \frac{a_{0,t}^c}{1 + \left(\frac{\rho}{\rho_{0,t}^c}\right)^2}
 \label{eq:critical_area}
 \end{equation}
-其中，\(a_{0,t}^c\)是空间频率趋近于0时的临界面积，\(\rho_{0,t}^c\)是临界面积开始显著下降的特征空间频率。
+其中，\(a_{0,t}^c\)是空间频率趋近于0时的临界面积，\(\rho_{0,t}^c\)是临界面积开始显著下降时的特征空间频率。
 
-人眼能在跨越数个数量级的亮度范围内工作，根据德弗里斯-罗斯定律，在昏暗的光线下，对比敏感度与视网膜照度的平方根成比例地增加，在中等至高亮度下趋于常数，在极高亮度下可能出现下降。根据Ashraf 等人的研究，无色持续通道亮度函数可采用一个复合函数来模拟上述全部三个阶段：
+亮度适应性的建模是另一个关键环节，人眼能在跨越数个数量级的亮度范围内工作，根据德弗里斯-罗斯定律，在昏暗的光线下，对比敏感度与视网膜照度的平方根成比例地增加，在中等至高亮度下趋于常数，在极高亮度下可能出现下降。根据Ashraf 等人的研究，无色持续通道亮度函数可采用一个复合函数来模拟上述全部三个阶段：
 \begin{equation}
 S_{m,S}^{Ach}(Y) = k_{s1,S}^{Ach} \left(1 + \frac{k_{s2,S}^{Ach}}{Y}\right)^{-k_{s3,S}^{Ach}} \left(1 - \frac{1 + k_{s4,S}^{Ach}}{Y}\right)^{k_{s5,S}^{Ach}}
 \label{eq:ach_luminance_sustained}
@@ -274,12 +275,12 @@ S_{m,S}^{c}(Y) = k_{s1,S}^{c} \left(1 + \frac{k_{s2,S}^{c}}{Y}\right)^{k_{s3,S}^
 \end{equation}
 其中，\(k_{s1,S}^{c}\)是敏感度的最大渐近值；\(k_{s2,S}^{c}\)是半饱和常数，控制过渡区域；\(k_{s3,S}^{c}\)是过渡区的指数参数。彩色通道敏感度在低亮度区上升，高亮度区饱和，反映了彩色视觉的亮度适应特性。
 
-视觉系统的对比敏感度从中央凹向周边视网膜急剧下降，且不同颜色通道的下降速率不同。基于 Watson 等人的研究，以中央凹（偏心度\(e = 0^\circ\)）的对比敏感度为基准，随着偏心度\(e\)增加，敏感度呈指数衰减：
+视网膜偏心度效应也是不可忽视的因素，视觉系统的对比敏感度从中央凹向周边视网膜急剧下降，且不同颜色通道的下降速率不同。基于 Watson 等人的研究，以中央凹区域（偏心度\(e = 0^\circ\)）的对比敏感度为基准，随着偏心度\(e\)增加，对比敏感度呈指数衰减：
 \begin{equation}
 S_{\text{ecc}}^{c}(e, \rho) = 10^{-(k_{e1}^{c} \rho + k_{e2}^{c}) e}
 \label{eq:eccentricity_basic}
 \end{equation}
-其中参数\(k_{e1}^{c}\)和\(k_{e2}^{c}\)控制衰减斜率。由于敏感度的降低在整个视野范围内是不均匀的，在鼻腔方向上降低较慢，则参数可进一步修正为方向\(\theta\)的函数：
+其中参数\(k_{e1}^{c}\)和\(k_{e2}^{c}\)控制衰减斜率。由于敏感度的降低在整个视野范围内是不均匀的，在鼻腔方向上降低较慢，则上述参数可进一步修正为方向\(\theta\)的函数：
 \begin{equation}
 \widehat{k}_{ei}^{c} = \alpha k_{ei}^{c} + (1 - \alpha)k_{ei,\text{nasal}}^{c}, \quad i = 1,2
 \label{eq:eccentricity_weighted}
@@ -288,7 +289,7 @@ S_{\text{ecc}}^{c}(e, \rho) = 10^{-(k_{e1}^{c} \rho + k_{e2}^{c}) e}
 \alpha = \min\left\{1, \left|\frac{\theta - 180}{90}\right|\right\}
 \label{eq:eccentricity_alpha}
 \end{equation}
-其中\(\theta\)为视觉场方向角，0°对应额侧，180°对应鼻侧。
+其中\(\theta\)为视觉场方向角，0°对应颞侧，180°对应鼻侧。
 
 将上述所有维度的调制因子进行整合后，我们可以得到每个颜色通道在特定刺激条件和眼动状态下的对比敏感度。无色通道包含持续和瞬态两个子通道的贡献之和，彩色通道仅包含持续子通道：
 \begin{equation}
@@ -306,27 +307,29 @@ S_c(\rho, \omega, Y, a, e, t, s) = S_{\text{ecc}}^{c}(e, \rho) \cdot \tilde{R}_S
 \end{equation}
 其中，所有输入变量包括：\(\rho\)（空间频率，单位CPD）、\(\omega\)（时间频率，单位Hz）、\(Y\)（背景亮度，单位cd/m²）、\(a\)（刺激面积，单位deg²）、\(e\)（视网膜偏心度，单位度）、\(t\)（扫视后时间，单位毫秒）、\(s\)（扫视状态）。
 
-在多通道信息整合阶段，需建立三个正交通道的独立响应与统一视觉感知决策之间的映射关系。本模型采用基于矢量求和的整合策略，即将各通道经视觉敏感度函数 $S_c$ 加权后的对比度信号视为多维感知空间中的正交分量。
-此时，总感知对比能量 $E$ 定义为该响应矢量的欧几里得范数：
+在多通道信息整合阶段，需建立三个正交通道的独立响应与统一视觉感知决策之间的映射关系。本模型采用
+概率求和与矢量求和相结合的整合策略，即将各通道的对比度信号经由各自的敏感度函数 $S_c$ 加权后映射为多维感知空间中的正交响应分量。
+定义总感知对比能量 $E$ 为该响应矢量的欧几里得范数：
 \begin{equation}
 E(\rho, \omega, Y, a, e, t, s) = \sqrt{ \left( S_{\text{Ach}} \cdot \Delta C_{\text{Ach}} \right)^2 + \left( S_{\text{RG}} \cdot \Delta C_{\text{RG}} \right)^2 + \left( S_{\text{YV}} \cdot \Delta C_{\text{YV}} \right)^2 }
 \label{eq:total_energy}
 \end{equation}
 
-依据信号检测理论，当且仅当多维感知空间中的总对比能量 $E$ 达到单位阈值即可归一化为1时，视觉刺激方可被侦测。
-为量化系统的视觉敏感度，需通过逆向求解使当前视觉刺激达到该临界状态所需的缩放因子。
-给定 DKL 颜色空间中的一个调制方向 $(\Delta C_{\text{Ach}}, \Delta C_{\text{RG}}, \Delta C_{\text{YV}})$，设 $\tau$ 为达到阈值所需的标量缩放因子，则阈值处的对比度矢量可表示为 $\tau \cdot (\Delta C_{\text{Ach}}, \Delta C_{\text{RG}}, \Delta C_{\text{YV}})$。
-将其代入总能量方程并令 $E = 1$，可解析解得 $\tau$ ：
+视觉系统对刺激的侦测判定取决于总能量是否跨越固定的感知边界。我们将该临界阈值标准化为单位量即检测条件为 $E = 1$。
+同时为量化针对特定视觉刺激的整体敏感度，需解析该刺激达到阈值临界状态所需的增益倍数。给定 DKL 颜色空间中的一个任意刺激方向向量 $C_{\text{stim}} = (\Delta C_{\text{Ach}}, \Delta C_{\text{RG}}, \Delta C_{\text{YV}})$，设标量 $\tau$ 为阈值缩放因子。当刺激强度被缩放至 $\tau \cdot C_{\text{stim}}$ 时，系统恰好处于临界检测状态。
+将缩放后的分量代入总能量方程并令 $E = 1$，可解析解得 $\tau$ ：
 \begin{equation}
 \tau = \frac{1}{\sqrt{ (S_{\text{Ach}} \Delta C_{\text{Ach}})^2 + (S_{\text{RG}} \Delta C_{\text{RG}})^2 + (S_{\text{YV}} \Delta C_{\text{YV}})^2 }}
 \label{eq:tau_calculation}
 \end{equation}
 
-此时，$\tau$ 确定了 DKL 空间中的阈值边界。为获得一个独立于特定颜色空间基底的、标准化的整体对比敏感度指标 $S_{\text{total}}$，需将上述确定的阈值对比度矢量逆映射回视锥响应空间
-并计算其几何范数的倒数。
+此时，$\tau$ 确定了该刺激方向上的检测阈值边界。由于 DKL 颜色空间是基于对抗色的心理物理空间，为获得一个独立于色彩空间基底且具有明确生理意义的标准化指标，需利用逆变换将 DKL 空间的阈值向量 $\tau \cdot \mathbf{C}_{\text{stim}}$ 映射回视锥响应空间，得到阈值处的视锥响应增量 $(\Delta \widehat{L}, \Delta \widehat{M}, \Delta \widehat{S})$。
+随后，计算三个视锥通道的均方根对比度 $C_{\mathrm{RMS}}$：
+\begin{equation}
+C_{\mathrm{RMS}} = \sqrt{\frac{1}{3} \left[ \left( \frac{\Delta \widehat{L}}{L_0} \right)^2 + \left( \frac{\Delta \widehat{M}}{M_0} \right)^2 + \left( \frac{\Delta \widehat{S}}{S_0} \right)^2 \right]}
+\end{equation}
 
-
-综上所述，考虑刺激相关的多个维度并融合扫视时序特征的castleCSF-TS 模型输出的整体对比敏感度 $S_{\mathrm{total}}$，其数学表达式为：
+最终，castleCSF-TS 模型输出的整体对比敏感度 $S_{\mathrm{total}}$为阈值处视锥对比度均方根的倒数，整理可得：
 \begin{equation}
 S_{\mathrm{total}} = \sqrt{ \frac{3}{ \left( \frac{\Delta \widehat{L}}{L_0} \right)^2 + \left( \frac{\Delta \widehat{M}}{M_0} \right)^2 + \left( \frac{\Delta \widehat{S}}{S_0} \right)^2 } }
 \label{eq:overall_sensitivity_integrated}
@@ -335,8 +338,8 @@ S_{\mathrm{total}} = \sqrt{ \frac{3}{ \left( \frac{\Delta \widehat{L}}{L_0} \rig
 
 （2）模型参数标定
 
-为确立公式 (\ref{eq:sf_recovery_raw}) 和 (\ref{eq:alpha_t}) 中描述扫视动态性的关键参数$(p_1, p_2, p_3)$，并精确量化扫视后视觉敏感度的恢复轨迹，
-本研究设计并实施了严格的眼动心理物理学实验，旨在获取扫视后时间与可分辨最高空间频率之间的定量关系，完成模型中时间恢复因子 $\alpha(t)$ 的数值标定。
+为确立公式 (\ref{eq:sf_recovery_raw}) 和 (\ref{eq:alpha_t}) 中描述扫视时序特征的关键参数$(p_1, p_2, p_3)$并精确量化扫视后视觉敏感度的恢复轨迹，
+本节设计并实施了严格的眼动心理物理学实验，旨在获取扫视后时间与可分辨最高空间频率之间的定量关系，完成模型中扫视后时间恢复因子 $\alpha(t)$ 的数值标定。
 
 实验共招募了12名视力正常或矫正至正常的健康成年参与者，所有参与者均通过色觉测试，无眼部疾病史，并在实验前签署知情同意书。
 实验在光照可控的隔音暗室中进行，视觉刺激由一台经过伽马校准的 55英寸 OLED 显示器呈现，背景亮度设定为 7.2 cd/m$^2$ 以模拟标准观看环境。眼球运动数据由 SR Research EyeLink 1000 Plus 眼动仪以 1000 Hz 的高采样率实时采集，通过下颌托限制头部运动以确保追踪精度。
@@ -345,15 +348,23 @@ S_{\mathrm{total}} = \sqrt{ \frac{3}{ \left( \frac{\Delta \widehat{L}}{L_0} \rig
 首先，参与者需稳定注视屏幕中央点；
 随后，目标Gabor斑块随机出现在外周视野，周围环绕高频噪声干扰项以促使执行精确的扫视；
 眼动仪实时监测视线轨迹，一旦检测到扫视着陆事件，系统立即触发高精度计时器。在预设的延迟时间 $\Delta T$ 后呈现目标刺激。
-$\Delta T$ 设定为 50, 100, 150, 200, 300, 400, 500 ms 七个水平，覆盖了从扫视抑制到视觉功能完全恢复的关键时段；
+$\Delta T$ 设定为 50, 100, 150, 200, 300, 400, 500 ms 七个水平，覆盖了从扫视抑制到视觉能力完全恢复的关键时段；
 受试者需通过键盘完成二选一强迫选择任务，判断 Gabor 条纹的方向。
-为高效测定每个\(\Delta T\)下75\%正确率的视觉敏感度阈值，本研究采用了自适应心理物理阶梯法，动态调整每次呈现的Gabor斑块的空间频率，使测试快速收敛于个体的感知阈值附近。
+为高效测定每个\(\Delta T\)下75\%正确率的视觉敏感度阈值，实验采用了自适应心理物理阶梯法，动态调整每次呈现的Gabor斑块的空间频率，使测试快速收敛于个体的感知阈值附近。
 单次试验的时序流程如图\ref{fig:trial_procedure}所示：
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\textwidth]{../figures/thirdChapter/单次流程.png}
     \caption{眼动心理物理学实验单试次时序流程图}
     \label{fig:trial_procedure}
+\end{figure}
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{../figures/thirdChapter/saccade_recovery_large.png}
+    \caption{扫视后视觉敏感度恢复曲线拟合结果示意图}
+    \label{fig:saccade_recovery_large}
 \end{figure}
 
 
@@ -371,28 +382,28 @@ $\Delta T$ 设定为 50, 100, 150, 200, 300, 400, 500 ms 七个水平，覆盖�
 %     \label{fig:median_curve}
 % \end{figure}
 
-\begin{figure}[htbp]
-    \centering
+% \begin{figure}[htbp]
+%     \centering
     
-    % 第一行
-    \subfloat[扫视后视觉敏感度动态恢复曲线拟合结果示意图（单人）\label{fig:individual_curve}]{
-        \includegraphics[width=0.80\textwidth]{../figures/thirdChapter/单人拟合.pdf}
-    }
+%     % 第一行
+%     \subfloat[扫视后视觉敏感度动态恢复曲线拟合结果示意图（单人）\label{fig:individual_curve}]{
+%         \includegraphics[width=0.80\textwidth]{../figures/thirdChapter/单人拟合.pdf}
+%     }
     
-    % 第二行
-    \subfloat[群体扫视后视觉敏感度群体恢复及中位数拟合曲线\label{fig:median_curve}]{
-        \includegraphics[width=0.80\textwidth]{../figures/thirdChapter/群体中位数拟合.pdf}
-    }
+%     % 第二行
+%     \subfloat[群体扫视后视觉敏感度群体恢复及中位数拟合曲线\label{fig:median_curve}]{
+%         \includegraphics[width=0.80\textwidth]{../figures/thirdChapter/群体中位数拟合.pdf}
+%     }
     
-    \caption{扫视后视觉敏感度恢复曲线拟合结果示意图}
-    \label{fig:fitting_results}
-\end{figure}
+%     \caption{扫视后视觉敏感度恢复曲线拟合结果示意图}
+%     \label{fig:fitting_results}
+% \end{figure}
 
 
-在数据预处理阶段，剔除含眨眼、扫视潜伏期异常（$<80$ ms 或 $>500$ ms）及着陆误差超过 $1.5^\circ$ 的无效试次，随后，汇总所有受试者在各延迟时间 $\Delta T$ 下测得的空间频率阈值。
+在数据预处理阶段，剔除含眨眼、扫视潜伏期异常（$<80$ ms 或 $>500$ ms）及着陆误差超过 $1.5^\circ$ 的无效试次，随后汇总所有受试者在各延迟时间 $\Delta T$ 下测得的空间频率阈值。
 考虑到心理物理学数据的个体差异，采用群体中位数作为集中趋势的估计量。将扫视后时间 $t$ 作为自变量，群体空间频率阈值 $SF(t)$ 作为因变量，使用公式 (\ref{eq:sf_recovery_raw}) 定义的幂函数模型进行非线性最小二乘拟合，得到个性化的恢复曲线参数。
 
-图\ref{fig:individual_curve} 与图\ref{fig:median_curve} 分别展示了典型个体数据及群体中位数数据的拟合曲线。实验结果揭示了视觉系统在时域上的动态恢复规律：
+图\ref{fig:saccade_recovery_large}展示了典型个体数据及群体中位数数据的拟合曲线。实验结果揭示了视觉系统在时域上的动态恢复规律：
 在扫视着陆初期（$t \approx 50$ ms），受残留扫视抑制影响，平均视觉敏感度阈值处于9-11 cpd 的低水平；随后，阈值随时间呈非线性快速回升，在 $t \approx 300$ ms 附近增速放缓，并最终在 $t \approx 500$ ms 时渐近趋于 27-30 cpd 的稳态水平。
 
 

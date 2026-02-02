@@ -530,7 +530,7 @@ r_{fovea}(t_i) = \theta_{max} \cdot \frac{\rho_{percept}(t_i)}{\rho_{max}}
 
 前述的时序调度机制仅输出了中央凹区域即 $e=0$ 处在当前时刻的理论分辨率上限，为将这一时序优化扩展至全屏幕视口，算法进一步构建了动态多分辨率场。在每一帧，整个视口被划分为多个同心环带，每个区域的分辨率缩放因子由该区域中心点的偏心度 \(e\) 和当前眼动状态共同决定。具体而言，定义分辨率映射函数 \(K(e, t, s)\)：
 \begin{equation}
-K(e, t, s) = \max \left( k_{min}, \, \min \left( 1.0, \, \frac{k(t) \cdot S_{total}(e=0)}{S_{total}(e)} \right) \right)
+K(e, t, s) = \max \left( k_{min}, \, \min \left( 1.0, \, \frac{k(t) \cdot S_{total}(e)}{S_{total}(e=0)} \right) \right)
 \label{eq:dynamic_resolution_field}
 \end{equation}
 其中，$k_{min}$ 为系统允许的最低背景分辨率，\(S_{total}(e)\) 为归一化的静态偏心度敏感度衰减函数即标准注视点渲染曲线\cite{4-1}。该映射函数表明在时序因子 \(k(t)\) 调制的基础上，进一步叠加空间偏心度带来的敏感度衰减效应。因此，在恢复初期，不仅中央凹区域分辨率降低，其周边区域也按比例进一步降低，形成以注视点为中心、分辨率梯度平滑变化的渲染场。

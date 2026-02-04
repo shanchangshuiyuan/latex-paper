@@ -44,7 +44,7 @@ CSF 中存在一个关键参数即截止空间频率，超过该频率的细节�
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1\linewidth]{../figures/secondChapter/动画网格渲染流程框架图.png}
+    \includegraphics[width=1\linewidth]{../figures/secondChapter/pdf/动画网格渲染流程框架图.pdf}
     \caption{动画网格渲染流程示意图}
     \label{fig:animation_grid_rendering_process}
 \end{figure}
@@ -59,7 +59,7 @@ CSF 中存在一个关键参数即截止空间频率，超过该频率的细节�
 几何阶段的运算任务主要由 GPU 负责，对应用阶段 CPU 传来的数据进行进一步处理，将渲染图元的三维信息投射到二维屏幕空间上，该阶段可细分为若干流程，如图\ref{fig:geometry_process}所示。
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{figures/secondChapter/几何阶段处理流程图.png}
+    \includegraphics[width=1\textwidth]{../figures/secondChapter/pdf/几何阶段处理流程图.pdf}
     \caption{几何阶段处理流程图}
     \label{fig:geometry_process}
 \end{figure}  
@@ -70,7 +70,7 @@ CSF 中存在一个关键参数即截止空间频率，超过该频率的细节�
 每个变换环节共同完成从局部坐标到屏幕坐标的完整过程，顶点坐标变换流程如图\ref{fig:model_vertex_transform}所示。
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{figures/secondChapter/顶点坐标变换步骤图.png}
+    \includegraphics[width=1\textwidth]{../figures/secondChapter/pdf/顶点坐标变换流程图.pdf}
     \caption{顶点坐标变换流程图}
     \label{fig:model_vertex_transform}
 \end{figure}  
@@ -221,7 +221,7 @@ M_{persp} = M_{ortho} \times M_{persp \to ortho}
 光栅化阶段主要由 GPU 负责，接收几何阶段的顶点数据，计算渲染图元覆盖像素并进行着色处理，输出最终渲染图像。该阶段可细分为若干流程，如图\ref{fig:rasterization_process}所示。
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{figures/secondChapter/光栅化阶段处理流程.png}
+    \includegraphics[width=1\textwidth]{../figures/secondChapter/pdf/光栅化阶段处理流程.pdf}
     \caption{光栅化阶段处理流程图}
     \label{fig:rasterization_process}
 \end{figure}

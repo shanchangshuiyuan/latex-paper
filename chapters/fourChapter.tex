@@ -50,7 +50,7 @@
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1\textwidth]{../figures/fourChapter/总体架构图.png}
+    \includegraphics[width=1\textwidth]{../figures/fourChapter/pdf/总体架构图.pdf}
     \caption{基于时空视觉感知的动画网格混合LOD方法总体架构}
     \label{fig:architecture}
 \end{figure}
@@ -269,7 +269,7 @@ w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1\textwidth]{../figures/fourChapter/PGT-LOD流程图.png}
+    \includegraphics[width=1\textwidth]{../figures/fourChapter/pdf/PGT-LOD流程图.pdf}
     \caption{感知引导的自适应细分LOD算法执行流程图}
     \label{fig:adaptive_lod}
 \end{figure}
@@ -891,7 +891,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 （3）提出了感知引导的自适应细分LOD算法：在在线渲染阶段，将离散LOD技术与连续GPU镶嵌技术结合，依据castleCSF-TS模型实时计算的视觉敏感度，动态调整基础网格的细分因子，并引入基于过渡区域的混合插值机制，实现了像素级精度的按需细分与平滑的层级过渡，有效消除了LOD切换产生的视觉跳变。
 
 
-（4）设计了多维度的实验验证体系：通过离线阶段的几何与时序误差评估，以及在线阶段的实际渲染实验，对所提方法进行了全面验证。实验结果表明，该方法在显著降低几何处理负载、提升渲染帧率与时序稳定性的同时，有效抑制了动态场景中的视觉伪影，实现了计算效率与视觉感知质量的最佳平衡。
+（4）设计了多维度的实验验证体系：通过离线阶段的几何与时序误差评估，以及在线阶段的实际渲染实验，对所提方法进行了全面验证。实验结果表明，该方法在显著降低几何处理负载、提升渲染帧率与时序稳定性的同时，有效抑制了动态场景中的失真，实现了计算效率与视觉感知质量的最佳平衡。
 
 
 综上所述，本章工作通过离线特征保留与在线感知调度的协同优化，解决了动画网格渲染中的运动失真与时空资源错配问题，为高保真、低延迟的动态虚拟现实场景渲染提供了有效的技术支撑。

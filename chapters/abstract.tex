@@ -1,20 +1,107 @@
 \begin{abstract}
 
+虚拟现实（Virtual Reality, VR）技术近年来迅速发展并广泛应用于多个领域，通过模拟真实世界的视觉、听觉、触觉等多感官体验，使用户沉浸于计算机生成的虚拟三维环境中。
+随着应用场景向大规模、高保真方向发展，尤其在包含复杂骨骼动画与高频动态交互的场景中，用户对真实感与交互实时性的要求日益提高，导致动画网格复杂度逐渐增加，给渲染管线带来了巨大的计算与传输压力。尽管注视点渲染和细节层次（Level of Detail, LOD）技术提供了一定的优化思路，但在面对动态复杂场景时，现有方法仍存在显著不足：
+一方面，传统注视点渲染方法往往忽略人眼扫视过程中的时序感知特性，同时难以自适应地响应亮度、色彩、刺激面积与实时眼动状态等多维视觉参数的变化，导致渲染资源分配不够精准，存在显著的计算冗余。
+另一方面，传统LOD方法主要面向静态网格设计，未能充分考虑动画序列中顶点的时序特征，在处理动画网格时容易引发运动失真，同时离散的LOD层级难以匹配由注视点引导的、连续变化的视觉重要性梯度，容易在注视焦点区域出现细节不足或在外围区域产生渲染冗余，造成视觉突变与计算资源分配失衡。
+
+为此，本文聚焦于人类视觉系统的时空感知特性，提出面向虚拟现实动画网格的时空感知注视点渲染技术，通过有效利用扫视过程中的时序感知冗余与动画网格的时空相关性，在保证视觉感知质量的前提下显著提升渲染性能。具体研究内容如下：
+
+（1）针对传统注视点渲染存在的多维感知失配与时序感知冗余问题，提出融合扫视时序特征的多维感知注视点渲染方法。首先，通过显式引入扫视时序调制因子，综合集成色彩、刺激面积、时空频率、亮度、视网膜偏心度等多维参数，构建了融合扫视时序特征的多维视觉感知模型castleCSF-TS，精确量化了扫视后视觉敏感度动态恢复过程。其次，提出感知自适应的动态分辨率渲染算法，通过高精度眼动事件检测划分时序优化窗口，并依据castleCSF-TS模型实时预测的感知临界频率，在时序优化窗口内动态调整中央凹及周边区域的渲染分辨率，使渲染负载与瞬时视觉感知能力的精准对齐，从而显著降低时序计算冗余，提升渲染效率。最后，实验结果表明，相较于眼动追踪注视点渲染方法，本文方法在高动态交互场景中，将平均帧率提升至约9.1\%，GPU平均利用率降低7\%，且结构相似性维持在0.95以上，在提升渲染性能的同时确保了视觉感知的无损性。
+
+（2）针对传统LOD方法在处理动画网格时存在的运动失真与时空资源错配问题，提出基于时空视觉感知的动画网格混合LOD方法。首先，在离线预处理阶段提出时空运动特征驱动的动画网格层次简化算法，通过构建融合动画时序特性与空间结构特征的重要性度量模型，指导生成在动画播放全周期内保持视觉连贯性的多层次细节表示。在实时渲染阶段提出感知引导的自适应细分LOD算法，利用 GPU 硬件镶嵌单元，依据castleCSF-TS 模型计算得到的分辨率缩放因子，在基础 LOD 层级上进行像素级精度的表面细分，实现了动画网格在时空维度上的平滑细节过渡和高效资源分配。最后，实验结果表明，相较于静态感知LOD方法，本文方法复杂动态仿真场景中，将域着色器输出顶点数降低约26.2\%，帧率提升约15.3\%，LOD切换频率减少约44.0\%，并将有效细分触发率提升至92.1\%，在显著降低几何渲染开销的同时保障了视觉体验的连贯性与真实感。
+
+基于以上研究，本文设计并实现了一套数字工厂可视化系统。该系统采用Web端三维可视化与VR端沉浸式漫游的双模式架构，将上述提出的融合扫视时序特征的多维感知注视点渲染方法与基于时空视觉感知的动画网格混合LOD方法深度集成于Unity可编程渲染管线，构建了感知自适应的实时渲染引擎。在包含超千万几何面片的高负载工业场景中进行测试，该系统能够稳定维持91.7 FPS的流畅帧率，GPU显存占用降低35\%以上，且用户注视区域的视觉质量损失低于3\%，验证了本文方法在可视化领域的实用价值。
 
 \par
 
-\keywords{}
+\keywords{虚拟现实，注视点渲染，视觉感知模型，动画网格，细节层次技术}
 \end{abstract}
 \begin{englishabstract}
+Virtual Reality (VR) technology has developed rapidly in recent years and is widely used in various fields. By simulating multi-sensory experiences such as vision, hearing, and touch from the real world, it immerses users in computer-generated virtual three-dimensional environments. As application scenarios evolve towards large-scale and high-fidelity development, especially in those containing complex skeletal animations and high-frequency dynamic interactions, users' demands for realism and interactive real-time performance are increasingly higher, leading to a gradual increase in the complexity of animated meshes and imposing tremendous computational and transmission pressure on the rendering pipeline. Although foveated rendering and Level of Detail (LOD) technology offer certain optimization ideas, existing methods still have significant shortcomings when facing dynamic and complex scenes:
+On the one hand, traditional foveated rendering methods often ignore the temporal perception characteristics of the human eye during saccades and have difficulty adapting to changes in multi-dimensional visual parameters such as brightness, color, stimulus area, and real-time eye movement state, resulting in imprecise rendering resource allocation and significant computational redundancy.
+On the other hand, traditional LOD methods are primarily designed for static meshes and fail to fully consider the temporal characteristics of vertices in animation sequences, making them prone to motion distortion when processing animated meshes. Meanwhile, discrete LOD levels struggle to match the continuously changing visual importance gradient guided by the gaze point, easily causing insufficient detail in the gaze focal area or rendering redundancy in peripheral areas, leading to visual popping and imbalanced computational resource allocation.
+\\~\\
+To address this, this paper focuses on the spatiotemporal perception characteristics of the human visual system and proposes a spatiotemporally-aware foveated rendering technique for virtual reality animated meshes. By effectively utilizing the temporal perceptual redundancy during saccades and the spatiotemporal correlation of animated meshes, it significantly enhances rendering performance while ensuring visual perception quality. The specific research contents are as follows:
+\\~\\
+(1) To address the multidimensional perceptual mismatch and temporal perceptual redundancy in traditional foveated rendering, a multidimensional perceptual foveated rendering method incorporating saccade temporal features is proposed. Firstly, by explicitly introducing a saccade temporal modulation factor and comprehensively integrating multidimensional parameters such as color, stimulus area, spatiotemporal frequency, brightness, and retinal eccentricity, a multidimensional visual perception model named castleCSF-TS incorporating saccade temporal features is constructed, precisely quantifying the dynamic recovery process of visual sensitivity after saccades. Secondly, a perceptually adaptive dynamic resolution rendering algorithm is proposed. It defines saccade and recovery windows through high-precision eye movement event detection and, based on the perceptual critical frequency predicted in real-time by the castleCSF-TS model, dynamically maps and smoothly adjusts the resolution of the foveal and surrounding areas within the temporal optimization window, achieving precise alignment between rendering load and instantaneous visual perception capability, significantly reducing temporal computational redundancy and improving rendering efficiency. Finally, experimental results show that compared to the eye-tracking foveated rendering method, the proposed method achieves an average frame rate increase of approximately 9.1\%, reduces GPU average utilization by 7\%, and maintains structural similarity above 0.95 in high-dynamic interaction scenes, ensuring visual perception imperceptibility while improving rendering performance.
+\\~\\
+(2) To address the motion distortion and spatiotemporal resource mismatch problems of traditional LOD technology when processing animated meshes, a spatiotemporal visual perception-based hybrid LOD method for animated meshes is proposed. Firstly, in the offline preprocessing stage, a spatiotemporal motion feature-driven animated mesh hierarchical simplification algorithm is proposed. By constructing an importance measurement model that integrates animation temporal characteristics and spatial structural features, it guides the generation of multi-level detail representations that maintain visual coherence throughout the entire animation playback cycle. In the real-time rendering stage, a perception-guided adaptive subdivision LOD algorithm is proposed. Utilizing GPU hardware tessellation units and based on the resolution scaling factor calculated by the castleCSF-TS model, it performs pixel-level precision surface subdivision on the base LOD level, achieving smooth detail transition and efficient resource allocation for animated meshes in the spatiotemporal dimension. Finally, experimental results show that compared to the static perception-aware LOD method, the proposed method, in complex dynamic simulation scenes, reduces the domain shader output vertex count by approximately 26.2\%, increases the frame rate by approximately 15.3\%, decreases the LOD switching frequency by approximately 44.0\%, and raises the effective subdivision trigger rate to 92.1\%, significantly reducing geometric rendering overhead while ensuring the continuity and realism of the visual experience.
+\\~\\
+Based on the above research, this paper designs and implements a digital factory visualization system. The system adopts a dual-mode architecture combining Web-based 3D visualization and VR-end immersive roaming, deeply integrating the proposed multidimensional perceptual foveated rendering method incorporating saccade temporal features and the spatiotemporal visual perception-based animated mesh hybrid LOD method into the Unity programmable rendering pipeline to build a perceptually adaptive real-time rendering engine. Tested in a high-load industrial scene with a total number of geometric facets exceeding ten million, the system can stably maintain a smooth frame rate of 91.7 FPS, reduce GPU memory usage by over 35\%, and keep visual quality loss in the user's focus area below 3\%. The experimental results verify the practical value of the proposed method in the field of visualization.
 
-\englishkeywords{}
+\englishkeywords{Virtual Reality, Foveated Rendering, Visual Perception Model, Animated Mesh, Level of Detail Technology}
 \end{englishabstract}
 \XDUpremainmatter
 \begin{symbollist}{lp{7cm}}
+$M_{model}$ & 模型矩阵 \\
+$M_{view}$ & 视图矩阵 \\
+$M_{ortho}$ & 正交投影矩阵 \\
+$M_{persp}$ & 透视投影矩阵 \\
+$\rho$ & 空间频率 \\
+$\omega$ & 时间频率 \\
+$Y$ & 背景感知亮度 \\
+$e$ & 视网膜偏心度 \\
+$a$ & 视觉刺激面积 \\
+$t$ & 扫视后流逝时间 \\
+$s$ & 眼动状态变量\\
+$S_{total}$ & 综合对比敏感度 \\
+$\Gamma(t, s)$ & 扫视时序调制因子 \\
+$\alpha(t)$ & 扫视后视觉敏感度时间恢复因子 \\
+ $\rho_{percept}$ & 感知临界空间频率 \\
+$k(t)$ & 分辨率缩放因子 \\
+$K(e, t, s)$ & 动态多分辨率场映射函数 \\
 
+$I(v,t)$ & 顶点在时刻 $t$ 的时空运动特征重要性 \\
+$M(v,t)$ & 运动显著性分量 \\
+$G(v)$ & 几何结构分量 \\
+$J(v)$ & 骨骼蒙皮关联分量 \\
+$H_v(t)$ & 顶点 $v$ 在时刻 $t$ 的离散平均曲率 \\
+$D_{ij}$ & 边的多特征平均偏差 \\
+$\text{Cost}(e_{ij})$ & 融合重要性权重的边折叠代价 \\
+$E_{\text{temp}}$ & 时序一致性约束下的运动轨迹误差 \\
+$TF_{final}$ & 细分因子 \\
+$\mu_{avg}$ & 时空感知调制系数 \\
+$d_{H_{dyn}}$ & 动态豪斯多夫距离 \\
+$STED$ & 时空边缘差异 \\
+$N_{vert}$ & 域着色器总输出顶点数 \\
+$R_{eff}$ & 有效细分触发率 \\
 \end{symbollist}
 
 \begin{abbreviationlist}{lp{6cm}p{6cm}}
 VR & Virtual Reality & 虚拟现实 \\
+LOD & Level of Detail & 细节层次 \\
+HVS & Human Visual System & 人类视觉系统 \\
+VRS & Variable Rate Shading & 可变速率着色 \\
+QEM & Quadric Error Metric & 二次误差度量 \\
+HVS & Human Visual System & 人类视觉系统 \\
+CS & Contrast Sensitivity & 对比敏感度 \\
+CPU & Central Processing Unit & 中央处理器 \\
+GPU & Graphics Processing Unit & 图形处理器 \\
+SRP & Scriptable Render Pipeline & 可编程渲染管线 \\
+SDK & Software Development Kit & 软件开发工具包 \\
+API & Application Programming Interface & 应用程序编程接口 \\
+Ach & Achromatic & 无色通道 \\
+RG & Red-Green & 红-绿对抗通道 \\
+YV & Yellow-Violet & 黄-紫对抗通道 \\
+CPD & Cycles Per Degree & 周期每度 \\
+RMS & Root Mean Square & 均方根 \\
+AIC & Akaike Information Criterion & 赤池信息量准则 \\
+RMSE & Root Mean Square Error & 均方根误差 \\
+ECSR & Effective Computation Saving Ratio & 有效计算节省比 \\
+SSIM & Structural Similarity Index Measure & 结构相似性 \\
+NFR & Non-Foveated Rendering & 全分辨率渲染 \\
+TFR & Tracked Foveated Rendering & 眼动追踪注视点渲染 \\
+FFR & Fixed Foveated Rendering & 固定注视点渲染 \\
+STED & Spatio-Temporal Edge Difference & 时空边缘差异 \\
+ECSR & Effective Computation Saving Ratio & 有效计算节省比 \\
+Slerp & Spherical Linear Interpolation & 球面线性插值 \\
+Mipmap & Multum in Parvo Map & 纹理多级渐远配置 \\
+
+LTS & Long Term Support & 长期支持版本 \\
+WebGL & Web Graphics Library & 网页图形库 \\
+AGV & Automated Guided Vehicle & 自动导引运输车 \\
+Modbus & (A serial communication protocol) & 工业标准串行通信协议 \\
+Draw Call & (Graphics rendering commands) & 绘制调用指令 \\
 
 \end{abbreviationlist}

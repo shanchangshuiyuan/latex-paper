@@ -62,11 +62,11 @@
 
 \subsection{时空运动特征驱动的动画网格层次简化算法}
 
-针对传统简化算法采用的静态几何误差准则在处理动态网格时易破坏运动连贯性的问题，本节提出时空运动特征驱动的动画网格层次简化算法（Spatio-Temporal Motion Feature-driven Animation Mesh Hierarchical Simplification Algorithm, STMF-DS）。该算法通过分析顶点在动画序列中的运动轨迹、局部形变的剧烈程度以及骨骼蒙皮的物理约束，构建了一个融合动画时序特性与空间结构特征的重要性度量模型，并将其作为启发式因子融入边折叠代价函数，同时引入时序一致性约束，指导生成在动画播放全周期内保持视觉连贯性的多层次细节表示。下文将分别从时空运动特征重要性度量模型与时空运动特征驱动的动画网格层次简化算法两个方面展开详细论述。算法的执行流程如图\ref{fig:stmf-ds} 所示。
+针对传统简化算法采用的静态几何误差准则在处理动态网格时易破坏运动连贯性的问题，本节提出时空运动特征驱动的动画网格层次简化算法（Spatio-Temporal Motion Feature-driven Animation Mesh Hierarchical Simplification Algorithm, STMF-DS）。该算法通过分析顶点在动画序列中的运动轨迹、局部形变的剧烈程度和骨骼蒙皮的物理约束，构建了一个融合动画时序特性与空间结构特征的重要性度量模型，并将其作为启发式因子融入边折叠代价函数，同时引入时序一致性约束，指导生成在动画播放全周期内保持视觉连贯性的多层次细节表示。下文将分别从时空运动特征重要性度量模型与时空运动特征驱动的动画网格层次简化算法两个方面展开详细论述。算法的执行流程如图\ref{fig:stmf-ds} 所示。
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\textwidth]{../figures/fourChapter/简化算法流程图.pdf}
-    \caption{时空运动特征驱动的动画网格层次简化算法执行流程图}
+    \caption{时空运动特征驱动的动画网格层次简化算法执行流程}
     \label{fig:stmf-ds}
 \end{figure}
 
@@ -252,9 +252,9 @@ w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
 \end{algorithmic}
 \end{algorithm}
 
-（b）边折叠优先队列初始化：在计算顶点重要性的基础上，算法为网格中的每条边计算综合折叠代价。折叠代价由三部分组成：多特征平均偏差、时空运动特征重要性权重以及时序运动误差。通过预设的权重系数将这些分量组合成最终折叠代价，并构建按代价排序的优先队列。
+（b）边折叠优先队列初始化：在计算顶点重要性的基础上，算法为网格中的每条边计算综合折叠代价。折叠代价由三部分组成：多特征平均偏差、时空运动特征重要性权重和时序运动误差。通过预设的权重系数将这些分量组合成最终折叠代价，并构建按代价排序的优先队列。
 
-（c）迭代边折叠简化：算法进入迭代简化阶段，从优先队列中提取当前折叠代价最小的边进行折叠操作。在执行折叠前，算法会检验该边折叠可能导致的运动失真程度，若超过预设阈值则跳过此边。对于通过检验的边，执行折叠操作后更新新顶点的时空运动特征重要性、骨骼权重以及所有相邻边的折叠代价。算法持续迭代直至达到目标简化率或优先队列为空。
+（c）迭代边折叠简化：算法进入迭代简化阶段，从优先队列中提取当前折叠代价最小的边进行折叠操作。在执行折叠前，算法会检验该边折叠可能导致的运动失真程度，若超过预设阈值则跳过此边。对于通过检验的边，执行折叠操作后更新新顶点的时空运动特征重要性、骨骼权重和所有相邻边的折叠代价。算法持续迭代直至达到目标简化率或优先队列为空。
 
 （d）动画关键帧精简与插值：完成几何简化后，算法对动画序列进行时间维度优化。对于每个骨骼的运动轨迹，计算连续关键帧间的重要性加权运动误差，识别并剔除误差低于阈值的关键帧。为保证动画的平滑性，对保留的关键帧采用Catmull-Rom样条插值算法生成中间过渡帧，确保运动轨迹的连续性。
 
@@ -270,7 +270,7 @@ w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\textwidth]{../figures/fourChapter/pdf/PGT-LOD流程图.pdf}
-    \caption{感知引导的自适应细分LOD算法执行流程图}
+    \caption{感知引导的自适应细分LOD算法执行流程}
     \label{fig:adaptive_lod}
 \end{figure}
 
@@ -403,7 +403,7 @@ P_{\text{transition}}(t) = \alpha \cdot P_i(\phi_i(t)) + (1-\alpha) \cdot P_j(\p
 
 （d）处理纹理和过渡：首先，对细分产生的新顶点插值计算纹理坐标。为解决细分导致的纹理混叠问题，计算纹理坐标在屏幕空间的偏导数，据此选择最佳的各向异性Mipmap层级，确保纹理细节与几何密度的一致性。然后，如果当前渲染区域需要进行LOD层次过渡（即从级别$i$切换到级别$j$），则计算过渡权重$\alpha$，对过渡区域内的每个顶点，根据$\alpha$插值计算其最终的几何位置和骨骼权重，并对骨骼权重进行归一化，同时，对动画关键帧进行时间对齐的插值处理，确保动画序列的平滑过渡。最后，在LOD过渡区域，对纹理进行线性混合过渡，过渡权重$\alpha$与几何过渡权重相同，确保纹理与几何同步平滑过渡，避免纹理闪烁。
 
-该算法通过感知引导的动态细分、LOD平滑过渡以及纹理自适应处理，有效解决了传统LOD技术在注视点渲染中的视觉跳变、纹理闪烁和时空资源错配问题，实现了动画网格的高效、高质量渲染。
+该算法通过感知引导的动态细分、LOD平滑过渡和纹理自适应处理，有效解决了传统LOD技术在注视点渲染中的视觉跳变、纹理闪烁和时空资源错配问题，实现了动画网格的高效、高质量渲染。
 
 
 
@@ -421,7 +421,7 @@ P_{\text{transition}}(t) = \alpha \cdot P_i(\phi_i(t)) + (1-\alpha) \cdot P_j(\p
 为了确保实验结果的可靠性与可复现性，实验环境沿用了第三章的软硬件平台配置。
 在实验数据集选取方面，为充分测试算法处理复杂形变与运动连贯性的能力，避免使用简单静态模型蒙皮带来的局限性，，本实验选取了计算机图形学领域公认的动态网格基准数据集：
 Galloping Horse与Humanoid，
-其中 Galloping Horse 数据集\cite{4-3-1-1}具有显著的四肢高频摆动与躯干肌肉的细微形变，包含 48 帧，原始三角形面数 168434，用于测试算法在处理大幅度关节旋转时的体积保持能力，以及在快速运动下的拓扑稳定性。
+其中 Galloping Horse 数据集\cite{4-3-1-1}具有显著的四肢高频摆动与躯干肌肉的细微形变，包含 48 帧，原始三角形面数 168434，用于测试算法在处理大幅度关节旋转时的体积保持能力和在快速运动下的拓扑稳定性。
 Humanoid 数据集为典型的VR角色，包含 300 帧，原始三角形面数 508000，用于模拟真实交互场景，并作为后续主观实验的测试载体。
 所有数据集在实验前均进行了标准化处理，将顶点坐标归一化至单位包围盒内，确保误差度量的一致性。
 
@@ -532,7 +532,8 @@ $R_{eff}$ 越接近 100\%，表明算法表明算法的资源分配策略越精�
         >{\centering\arraybackslash}m{0.10\textwidth}
         >{\centering\arraybackslash}m{0.09\textwidth}}
         \toprule
-        \textbf{数据集} & \textbf{简化率} & \textbf{评价指标} & \textbf{Standard QEM} & \textbf{Avg-QEM} & \textbf{SFSP-QEM} & \textbf{Yang AQEM} & \textbf{Ours} \\
+        \textbf{数据集} & \textbf{简化率} & \textbf{评价指标} & \textbf{Standard QEM} & \textbf{Avg-QEM} & \textbf{SFSP-QEM} & \textbf{AQEM} & \textbf{Ours} \\
+        & & & \textbf{(1997)} & \textbf{(1998)} & \textbf{(2025)} & \textbf{(2019)} & \textbf{} \\
         \midrule
         \multirow{9}*{\makecell{Galloping\\Horse}} & \multirow{3}*{40\%} & $d_{H_{dyn}}$ (mm) & 8.52 & 6.45 & \textbf{5.76} & 6.15 & 6.03 \\
         & & STED ($\times 10^{-3}$) & 16.26 & 13.80 & 12.05 & 9.24 & \textbf{7.35} \\
@@ -597,7 +598,7 @@ $R_{eff}$ 越接近 100\%，表明算法表明算法的资源分配策略越精�
         \includegraphics[width=0.31\textwidth]{../figures/fourChapter/our.png}
     }
     
-    \caption{简化结果视觉对比图}
+    \caption{简化结果视觉对比}
     \label{fig:simplification_comparison}
 \end{figure}
 
@@ -643,7 +644,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\linewidth]{../figures/fourChapter/简化效果.png}
-    \caption{3种不同层次的动画网格示意图}
+    \caption{3种不同层次的动画网格}
     \label{fig:animated_meshes}
 \end{figure}
 
@@ -696,21 +697,21 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 
 （2）感知引导的自适应细分LOD算法性能验证
 
-为了验证本文提出的感知引导的自适应细分LOD算法（PGT-LOD）在实时VR渲染中的实际效能，本实验基于 Unity 引擎构建了一个大规模风能枢纽动态仿真场景。该场景模拟了一个集能源采集与机械传动于一体的工业枢纽，包含 50 台高精度的风力发电机组、复杂的中央齿轮传动系统以及 4km $\times$ 4km 的起伏地形。场景中包含大量复杂的动画网格，若不采用优化手段，应用阶段需提供全精度动画网格，将产生巨大的渲染开销，如图\ref{fig:high}所示。而采用本文提出的 PGT-LOD 算法，应用阶段只需提供对应简化后的基础动画网格，利用 GPU 的硬件镶嵌单元，根据实时的注视点位置与时空运动特征重要性，将低细节网格动态细分为感知自适应的高细节网格,从而显著减少顶点着色器处理的顶点数量，如图\ref{fig:low}所示。
+为了验证本文提出的感知引导的自适应细分LOD算法（PGT-LOD）在实时VR渲染中的实际效能，本实验基于 Unity 引擎构建了一个大规模风能枢纽动态仿真场景。该场景模拟了一个集能源采集与机械传动于一体的工业枢纽，包含 50 台高精度的风力发电机组、复杂的中央齿轮传动系统和 4km $\times$ 4km 的起伏地形。场景中包含大量复杂的动画网格，若不采用优化手段，应用阶段需提供全精度动画网格，将产生巨大的渲染开销，如图\ref{fig:high}所示。而采用本文提出的 PGT-LOD 算法，应用阶段只需提供对应简化后的基础动画网格，利用 GPU 的硬件镶嵌单元，根据实时的注视点位置与时空运动特征重要性，将低细节网格动态细分为感知自适应的高细节网格,从而显著减少顶点着色器处理的顶点数量，如图\ref{fig:low}所示。
 
 \begin{figure}[htbp]
     \centering
     
     % 第一行
-    \subfloat[高精度动画网格渲染示例图\label{fig:high-mesh}]{
+    \subfloat[高精度动画网格渲染效果\label{fig:high-mesh}]{
         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/高精度渲染.png}
     }
     \hfill
-    \subfloat[高精度动画网格网络拓扑示例图 \label{fig:high-wire}]{
+    \subfloat[高精度动画网格拓扑结构 \label{fig:high-wire}]{
         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/高精度网格工厂图.png}
     }
     
-    \caption{高精度动画网格渲染示例与网络拓扑示例图}
+    \caption{高精度动画网格渲染效果与网络拓扑结构}
     \label{fig:high}
 \end{figure}
 
@@ -719,15 +720,15 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
     \centering
     
     % 第一行
-    \subfloat[低精度动画网格渲染示例图\label{fig:low-mesh}]{
+    \subfloat[低精度动画网格渲染效果\label{fig:low-mesh}]{
         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/低精度渲染.png}
     }
     \hfill
-    \subfloat[低精度动画网格网络拓扑示例图 \label{fig:low-wire}]{
+    \subfloat[低精度动画网格拓扑结构 \label{fig:low-wire}]{
         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/低精度网格工厂图.png}
     }
     
-    \caption{低精度动画网格渲染示例与网络拓扑示例图}
+    \caption{低精度动画网格渲染效果与网络拓扑结构}
     \label{fig:low}
 \end{figure}
 
@@ -840,15 +841,15 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[SD-LOD渲染效果图\label{fig:static_lod_render}]{
+    \subfloat[SD-LOD渲染效果\label{fig:static_lod_render}]{
         \includegraphics[width=0.31\textwidth]{../figures/fourChapter/静态距离LOD渲染图.png}
     }
     \hfill
-    \subfloat[SP-LOD渲染效果图\label{fig:sp_lod_render}]{
+    \subfloat[SP-LOD渲染效果\label{fig:sp_lod_render}]{
         \includegraphics[width=0.31\textwidth]{../figures/fourChapter/静态感知LOD渲染图.png}
     }
     \hfill
-    \subfloat[PGT-LOD渲染效果图\label{fig:our_lod_render}]{
+    \subfloat[PGT-LOD渲染效果\label{fig:our_lod_render}]{
         \includegraphics[width=0.31\textwidth]{../figures/fourChapter/本文方法渲染图.png}
     }
     \caption{风能枢纽场景局部渲染细节对比}
@@ -884,14 +885,14 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 \section{本章小结}
 本章针对传统LOD技术处理动画网格时存在的运动失真与时空资源错配问题，提出基于时空视觉感知的动画网格混合LOD方法，主要研究工作与结论如下：
 
-（1）系统剖析了现有动画网格渲染的瓶颈：指出传统LOD基于静态几何误差的简化准则破坏了骨骼动画的运动连贯性，导致高变形区域出现拓扑塌陷与运动瑕疵；同时揭示了离散的LOD层级难以匹配注视点引导的、连续变化的视觉重要性梯度，容易在注视焦点区域出现细节不足或在外围区域存在渲染冗余，造成视觉突变与计算资源分配不均。
+（1）系统剖析了现有动画网格渲染的瓶颈。指出传统LOD基于静态几何误差的简化准则破坏了骨骼动画的运动连贯性，导致高变形区域出现拓扑塌陷与运动瑕疵；同时揭示了离散的LOD层级难以匹配注视点引导的、连续变化的视觉重要性梯度，容易在注视焦点区域出现细节不足或在外围区域存在渲染冗余，造成视觉突变与计算资源分配不均。
 
-（2）提出了时空运动特征驱动的动画网格层次简化算法：在离线预处理阶段，构建了融合运动显著性、几何结构与骨骼蒙皮关联的多维重要性度量模型，在简化决策中引入时序运动误差约束，指导生成了在动画全周期内保持视觉连贯性的多层次细节表示，有效解决了动态拓扑结构丢失的问题。
+（2）提出了时空运动特征驱动的动画网格层次简化算法。在离线预处理阶段，构建了融合运动显著性、几何结构与骨骼蒙皮关联的多维重要性度量模型，在简化决策中引入时序运动误差约束，指导生成了在动画全周期内保持视觉连贯性的多层次细节表示，有效解决了动态拓扑结构丢失的问题。
 
-（3）提出了感知引导的自适应细分LOD算法：在在线渲染阶段，将离散LOD技术与连续GPU镶嵌技术结合，依据castleCSF-TS模型实时计算的视觉敏感度，动态调整基础网格的细分因子，并引入基于过渡区域的混合插值机制，实现了像素级精度的按需细分与平滑的层级过渡，有效消除了LOD切换产生的视觉跳变。
+（3）提出了感知引导的自适应细分LOD算法。在在线渲染阶段，将离散LOD技术与连续GPU镶嵌技术结合，依据castleCSF-TS模型实时计算的视觉敏感度，动态调整基础网格的细分因子，并引入基于过渡区域的混合插值机制，实现了像素级精度的按需细分与平滑的层级过渡，有效消除了LOD切换产生的视觉跳变。
 
 
-（4）设计了多维度的实验验证体系：通过离线阶段的几何与时序误差评估，以及在线阶段的实际渲染实验，对所提方法进行了全面验证。实验结果表明，该方法在显著降低几何处理负载、提升渲染帧率与时序稳定性的同时，有效抑制了动态场景中的失真，实现了计算效率与视觉感知质量的最佳平衡。
+（4）设计了多维度的实验验证体系。通过离线阶段的几何与时序误差评估和在线阶段的实际渲染实验，对所提方法进行了全面验证。实验结果表明，该方法在显著降低几何处理负载、提升渲染帧率与时序稳定性的同时，有效抑制了动态场景中的失真，实现了计算效率与视觉感知质量的最佳平衡。
 
 
 综上所述，本章工作通过离线特征保留与在线感知调度的协同优化，解决了动画网格渲染中的运动失真与时空资源错配问题，为高保真、低延迟的动态虚拟现实场景渲染提供了有效的技术支撑。

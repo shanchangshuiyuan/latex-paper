@@ -1,26 +1,25 @@
 \chapter{基于时空视觉感知的动画网格混合LOD方法}
-针对传统LOD方法在处理动画网格时存在的运动失真与时空资源错配问题，本章提出基于时空视觉感知的动画网格混合LOD方法，该方法通过构建融合时序特性的几何重要性度量与感知自适应细分调度机制，在保证视觉质量的同时实现计算资源在时空维度的最佳分配。同时通过多维度的几何误差度评估与实际动态场景渲染实验，验证了本方法的可行性与有效性。
+针对传统LOD方法在处理动画网格时存在的运动失真与时空资源错配问题，本章提出基于时空视觉感知的动画网格混合LOD方法。通过构建融合时序特性的几何重要性度量与感知自适应细分调度机制，在保证视觉质量的同时实现计算资源在时空维度的最佳分配。同时通过多维度的几何误差度评估与实际动态场景渲染实验，验证了本方法的可行性与有效性。
 
 \section{问题描述与分析}
-当前LOD技术为平衡渲染质量与性能提供了基础框架，但在面向动画网格的注视点渲染应用时，仍存在显著不足。
-本节首先描述现有LOD技术在动态场景应用中存在的运动失真与时空资源错配问题，随后从几何处理与视觉感知两个维度剖析其深层原因，揭示制约感知驱动渲染效率进一步提升的关键瓶颈。
+本节描述了现有LOD方法在动画网格的注视点渲染应用中存在的运动失真与时空资源错配问题，从几何处理与视觉感知两个维度剖析其深层原因，提出相应的解决方案。
 
 \subsection{问题描述}
 在虚拟现实应用中，采用高精度动画网格是提升场景真实感与沉浸感的关键手段，但这也导致了渲染计算负荷的急剧增加，对维持高帧率与低延迟提出了严峻挑战。
-注视点渲染技术通过在人眼不同视觉区域分配差异化渲染资源，为缓解这一矛盾提供了潜在路径。
+注视点渲染通过在人眼不同视觉区域分配差异化渲染资源，为缓解这一矛盾提供了潜在路径。
 然而，将现有LOD 方法直接应用于动画网格的注视点渲染时，其效果仍存在显著不足。
 
 首先，基于静态模型设计的传统 LOD 方法在简化动画网格时，容易引入显著的运动失真。
 在骨骼动画驱动的高变形区域，简化操作所依据的最小化静态几何误差准则，破坏了模型在时序上的运动连贯性特征，导致简化后的模型在动画播放过程中，不仅会出现几何塌陷，还会因拓扑结构改变而产生非自然的表面抖动或关键帧间的运动跳变。
 当用户注视点追踪此类动态目标时，若这类动态伪影落入中央凹区域，将直接损害视觉内容的真实感与沉浸体验。
 
-其次，传统 LOD 的离散切换机制无法实时适配快速变化的视觉注意力，导致渲染资源在时空维度上分配失当。注视焦点区域可能因切换延迟而出现细节缺失，外围非关注区域则可能存在渲染冗余。
+其次，传统 LOD 方法的离散切换机制无法实时适配快速变化的视觉注意力，导致渲染资源在时空维度上分配失当。注视焦点区域可能因切换延迟而出现细节缺失，外围非关注区域则可能存在渲染冗余。
 这种资源错配既损害了感知质量，也降低了渲染效率。
 
 
 \subsection{问题分析}
 
-针对上述问题，本研究从几何与感知两个层面，将根本原因归纳为以下两点：
+针对上述问题，本研究从几何处理与视觉感知两个层面，将根本原因归纳为以下两点：
 
 （1）现有简化算法采用的静态几何误差准则在处理动态网格时易破坏运动连贯性，导致运动失真。
 动画网格的视觉保真度不仅取决于静态几何精度，更依赖于其在时间轴上的运动连贯性与特征保持。
@@ -45,9 +44,12 @@
 \section{基于时空视觉感知的动画网格混合LOD方法}
 
 \subsection{总体架构}
-基于前文对问题的分析，本节提出基于时空视觉感知的动画网格混合LOD方法，该方法以第三章构建的castleCSF-TS感知模型为理论支撑，结合动画网格的时空特性，通过离线预处理阶段对运动拓扑的精确保持与实时渲染阶段对几何细节的按需细分，实现了动画网格在时空维度上视觉质量与渲染效率的最佳平衡。该方法的总体架构如图\ref{fig:architecture} 所示。
+基于前文对问题的分析，本节提出基于时空视觉感知的动画网格混合LOD方法，该方法以第三章构建的castleCSF-TS感知模型为理论支撑，结合动画网格的时空特性，通过离线预处理阶段对运动拓扑的精确保持与实时渲染阶段对几何细节的按需细分，实现了动画网格在时空维度上视觉质量与渲染效率的最佳平衡。该方法的总体架构如图\ref{fig:architecture} 所示，
 其核心工作流程可分为以下两个阶段：
 
+离线预处理阶段：提出时空运动特征驱动的动画网格层次简化算法，通过构建融合动画时序特性与空间结构特征的重要性度量模型，指导生成在动画播放全周期内保持视觉连贯性的多层次细节表示。
+
+实时渲染阶段：提出感知引导的自适应细分LOD算法，利用 GPU 硬件镶嵌单元，依据castleCSF-TS 模型计算的分辨率缩放因子，在基础 LOD 上进行像素级精度的表面细分，实现了动画网格在时空维度上的平滑细节过渡和高效资源分配。
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\textwidth]{../figures/fourChapter/pdf/总体架构图.pdf}
@@ -55,17 +57,12 @@
     \label{fig:architecture}
 \end{figure}
 
-离线预处理阶段：提出时空运动特征驱动的动画网格层次简化算法，通过构建融合动画时序特性与空间结构特征的重要性度量模型，指导生成在动画播放全周期内保持视觉连贯性的多层次细节表示。
-
-实时渲染阶段：提出感知引导的自适应细分LOD算法，利用 GPU 硬件镶嵌单元，依据castleCSF-TS 模型计算的分辨率缩放因子，在基础 LOD 上进行像素级精度的表面细分，实现了动画网格在时空维度上的平滑细节过渡和高效资源分配。
-
-
 \subsection{时空运动特征驱动的动画网格层次简化算法}
 
-针对传统简化算法采用的静态几何误差准则在处理动态网格时易破坏运动连贯性的问题，本节提出时空运动特征驱动的动画网格层次简化算法（Spatio-Temporal Motion Feature-driven Animation Mesh Hierarchical Simplification Algorithm, STMF-DS）。该算法通过分析顶点在动画序列中的运动轨迹、局部形变的剧烈程度和骨骼蒙皮的物理约束，构建了一个融合动画时序特性与空间结构特征的重要性度量模型，并将其作为启发式因子融入边折叠代价函数，同时引入时序一致性约束，指导生成在动画播放全周期内保持视觉连贯性的多层次细节表示。下文将分别从时空运动特征重要性度量模型与时空运动特征驱动的动画网格层次简化算法两个方面展开详细论述。算法的执行流程如图\ref{fig:stmf-ds} 所示。
+针对传统简化算法采用的静态几何误差准则在处理动态网格时易破坏运动连贯性的问题，本节提出时空运动特征驱动的动画网格层次简化算法（Spatio-Temporal Motion Feature-driven Animation Mesh Hierarchical Simplification Algorithm, STMF-DS）。该算法通过分析顶点在动画序列中的运动轨迹、局部形变的剧烈程度和骨骼蒙皮的物理约束，构建了一个融合动画时序特性与空间结构特征的重要性度量模型，并将其作为启发式因子融入边折叠代价函数，同时引入时序一致性约束，指导生成在动画播放全周期内保持视觉连贯性的多层次细节表示，算法执行流程如图\ref{fig:stmf-ds} 所示。下文将分别从时空运动特征重要性度量模型与时空运动特征驱动的动画网格层次简化算法两个方面展开详细论述。
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1\textwidth]{../figures/fourChapter/简化算法流程图.pdf}
+    \includegraphics[width=1\textwidth]{../figures/fourChapter/pdf/简化算法流程图.pdf}
     \caption{时空运动特征驱动的动画网格层次简化算法执行流程}
     \label{fig:stmf-ds}
 \end{figure}
@@ -82,7 +79,7 @@ I(v,t) =  \omega_M \cdot M(v,t) + \omega_G \cdot G(v) + \omega_J \cdot J(v)
 \end{equation}
 其中，$ \omega_M, \omega_G, \omega_J$为各分量的归一化权重系数。各分量具体定义如下：
 
-运动显著性分量$M(v,t)$：该分量量化顶点在运动过程中的局部形变剧烈程度。为确保度量具备旋转平移不变性，即仅响应网格的弯曲与拉伸，而不受刚体运动干扰，本文采用离散平均曲率的变化率作为衡量标准。
+运动显著性分量$M(v,t)$：该分量量化顶点在运动过程中的局部形变剧烈程度。为确保度量具备旋转平移不变性，即仅响应网格的弯曲与拉伸而不受刚体运动干扰，本文采用离散平均曲率的变化率作为衡量标准。
 顶点 $v$ 在时刻 $t$ 的离散平均曲率 $H_v(t)$ 定义为拉普拉斯坐标向量的模长的一半：
 \begin{equation}
 H_v(t) = \frac{1}{2} \left| v(t) - \frac{1}{d_v}\sum_{u \in N(v)} u(t) \right|
@@ -101,7 +98,7 @@ G(v) = \alpha \cdot C_v + \beta \cdot \frac{1}{d_v} \sum_{u \in N(v)} (1 - \over
 \end{equation}
 其中，$n_v$和$n_u$分别是顶点$v$和$u$的单位法线向量，$C_v$是顶点$v$的曲率，$\alpha$和$\beta$是权重系数。该分量确保了在尖锐特征边缘或高曲率区域保留足够的几何图元。
 
-骨骼蒙皮关联分量$J(v)$：该分量评估顶点对骨骼蒙皮变形中的敏感度。
+骨骼蒙皮关联分量$J(v)$：该分量评估顶点对骨骼蒙皮变形中的敏感度，基于蒙皮权重计算：
 \begin{equation}
 J(v) = 1 - \max_{j \in J} (w_{j,v})
 \label{eq:skinning_sensitivity}
@@ -118,7 +115,7 @@ J(v) = 1 - \max_{j \in J} (w_{j,v})
 D_{ij} = \frac{1}{3}\left( w_{\text{pos}} \cdot d_{\text{pos}}(v_i, v_j) + w_{\text{norm}} \cdot d_{\text{norm}}(v_i, v_j) + w_{\text{tex}} \cdot d_{\text{tex}}(v_i, v_j) \right)
 \label{eq:multi_feature}
 \end{equation}
-其中$w_{\text{pos}}, w_{\text{norm}}, w_{\text{tex}}$分别为位置、法线和纹理特征的权重系数，$d_{\text{pos}}, d_{\text{norm}}, d_{\text{tex}}$为对应的距离度量函数。位置距离采用欧氏距离，法线距离采用点积运算，纹理距离采用曼哈顿距离。
+其中，$w_{\text{pos}}, w_{\text{norm}}, w_{\text{tex}}$分别为位置、法线和纹理特征的权重系数，$d_{\text{pos}}, d_{\text{norm}}, d_{\text{tex}}$为对应的距离度量函数。位置距离采用欧氏距离，法线距离采用点积运算，纹理距离采用曼哈顿距离。
 
 为将时空运动特征重要性融入简化决策，需要重新定义边折叠的代价函数。对于顶点$v_i$和$v_j$的时空运动特征重要性$I(v_i,t)$和$I(v_j,t)$，首先计算边的平均重要性：
 \begin{equation}
@@ -130,27 +127,27 @@ I_{\text{avg}}(e_{ij}) = \frac{I(v_i,t) + I(v_j,t)}{2}
 I_{\text{weight}}(e_{ij}) = \frac{I_{\text{avg}}(e_{ij})}{\max_{v \in V} I(v,t)}
 \label{eq:normalized_importance}
 \end{equation}
-其中$V$为网格顶点集合。归一化后的重要性权重$I_{\text{weight}} \in [0,1]$，反映了该边相对于网格中其他边的重要性程度。
+其中，$V$为网格顶点集合。归一化后的重要性权重$I_{\text{weight}} \in [0,1]$，反映了该边相对于网格中其他边的重要性程度。
 最终，边的折叠代价函数定义为多特征平均偏差与重要性权重的组合形式：
 \begin{equation} 
 \text{Cost}(e_{ij}) = D_{ij} \cdot \left( 1 + \lambda \cdot I_{\text{weight}}(e_{ij}) \right) 
 \label{eq:collapse_cost} 
 \end{equation}
-其中$\lambda \geq 0$为重要性调节系数。当$\lambda=0$时，算法退化为传统的基于多特征平均偏差的简化算法；随着$\lambda$增大，重要性较低的边将获得更小的折叠代价，从而在简化过程中被优先折叠。该代价函数确保了高重要性区域得到更好保护，低重要性区域优先简化，实现了简化过程的自适应性。
+其中，$\lambda \geq 0$为重要性调节系数。当$\lambda=0$时，算法退化为传统的基于多特征平均偏差的简化算法；随着$\lambda$增大，重要性较低的边将获得更小的折叠代价，从而在简化过程中被优先折叠。该代价函数确保了高重要性区域得到更好保护，低重要性区域优先简化，实现了简化过程的自适应性。
 
 为确保简化后的网格在时间维度上保持运动连贯性，需要引入时序一致性约束。对于顶点$v$在局部时间窗口$W={t_0,t_1,\ldots,t_n}$中的运动轨迹${p(v,t)}$，定义边$e{ij}$折叠后的运动轨迹误差为：
 \begin{equation}
 E_{\text{temp}}(e_{ij}) = \frac{1}{|W|} \sum_{t \in W} \left| p_{\text{pred}}(v_{\text{new}},t) - p_{\text{actual}}(v_{\text{new}},t) \right|
 \label{eq:temporal_error}
 \end{equation}
-其中$p_{\text{pred}}(v_{\text{new}},t)$为基于原顶点轨迹线性插值预测的新位置；$p_{\text{actual}}(v_{\text{new}},t)$为实际折叠后产生的新顶点位置。
+其中，$p_{\text{pred}}(v_{\text{new}},t)$为基于原顶点轨迹线性插值预测的新位置；$p_{\text{actual}}(v_{\text{new}},t)$为实际折叠后产生的新顶点位置。
 
 综合静态几何误差和时序运动误差，边的最终折叠代价函数修正为：
 \begin{equation}
 \text{Cost}_{\text{final}}(e_{ij}) = \text{Cost}(e_{ij}) + \gamma \cdot E_{\text{temp}}(e_{ij})
 \label{eq:final_cost}
 \end{equation}
-其中$\gamma \geq 0$为时序误差权重系数。该复合代价函数同时考虑了空间几何误差、时空运动特征重要性和时间运动连贯性，实现了动画网格简化的多目标优化。
+其中，$\gamma \geq 0$为时序误差权重系数。该复合代价函数同时考虑了空间几何误差、时空运动特征重要性和时间运动连贯性，实现了动画网格简化的多目标优化。
 
 算法的执行过程遵循迭代边折叠的经典范式，但在每个环节都融入了时空运动特征的考量。初始化阶段，首先计算动画网格中每个顶点的时空运动特征重要性$I(v,t)$，提取动画序列中每个顶点的运动轨迹、几何特征和骨骼蒙皮信息，为每条边计算其最终折叠代价，构建边折叠优先队列。
 
@@ -161,22 +158,22 @@ E_{\text{temp}}(e_{ij}) = \frac{1}{|W|} \sum_{t \in W} \left| p_{\text{pred}}(v_
 I(v_{\text{new}}, t) = w_i \cdot I(v_i, t) + w_j \cdot I(v_j, t)
 \label{eq:weighted_average_importance}
 \end{equation}
-其中权重系数$w_i$和$w_j$基于几何距离确定，满足$w_i + w_j = 1$。权重的计算考虑了新顶点$v_{\text{new}}$与原始顶点$v_i$、$v_j$之间的空间关系，确保距离较近的原始顶点对新顶点的重要性贡献更大：
+其中，权重系数$w_i$和$w_j$基于几何距离确定，满足$w_i + w_j = 1$。权重的计算考虑了新顶点$v_{\text{new}}$与原始顶点$v_i$、$v_j$之间的空间关系，确保距离较近的原始顶点对新顶点的重要性贡献更大：
 \begin{equation}
 w_i = \frac{d(v_j, v_{\text{new}})}{d(v_i, v_{\text{new}}) + d(v_j, v_{\text{new}})}, \quad
 w_j = \frac{d(v_i, v_{\text{new}})}{d(v_i, v_{\text{new}}) + d(v_j, v_{\text{new}})}
 \label{eq:distance_based_weights}
 \end{equation}
-其中$d(\cdot,\cdot)$表示顶点间的欧氏距离。
+其中，$d(\cdot,\cdot)$表示顶点间的欧氏距离。
 
 边折叠操作改变了网格的拓扑结构，需要相应调整骨骼权重。对于新顶点$v_{\text{new}}$，其骨骼权重向量$w_{\text{new}}$通过原顶点权重进行加权平均得到：
 \begin{equation}
 w_{\text{new}} = \frac{||w_i|| w_i + ||w_j|| w_j}{||w_i|| + ||w_j||}
 \label{eq:bone_weight}
 \end{equation}
-其中$w_i, w_j$为原顶点$v_i, v_j$的骨骼权重向量，$||\cdot||$表示向量的欧氏范数。该插值方法保持了权重分布的相对比例，避免了简单平均可能导致的失真问题。
+其中，$w_i, w_j$为原顶点$v_i, v_j$的骨骼权重向量，$||\cdot||$表示向量的欧氏范数。该插值方法保持了权重分布的相对比例，避免了简单平均可能导致的失真问题。
 
-在获得简化的几何拓扑后，需要分析每个骨骼在时间维度上的运动轨迹，识别并剔除运动冗余的关键帧，同时保证重要运动特征的完整保留。对于特定骨骼 \( B_i \) 在关键帧 \( t_j \) 至 \( t_{j+1} \) 时间区间内的运动轨迹，定义其平均位移误差度量函数：：
+在获得简化的几何拓扑后，需要分析每个骨骼在时间维度上的运动轨迹，识别并剔除运动冗余的关键帧，同时保证重要运动特征的完整保留。对于特定骨骼 \( B_i \) 在关键帧 \( t_j \) 至 \( t_{j+1} \) 时间区间内的运动轨迹，定义其平均位移误差度量函数：
 \begin{equation}
 E_{ij} = \frac{1}{N} \sum_{k=1}^{N} I(p_k,t_j) \cdot \left| \mathbf{T}_{ij}(p_k) - \mathbf{T}_{i(j+1)}(p_k) \right|
 \label{eq:motion_weighted_error2}
@@ -190,17 +187,20 @@ E_{ij} = \frac{1}{N} \sum_{k=1}^{N} I(p_k,t_j) \cdot \left| \mathbf{T}_{ij}(p_k)
 \begin{equation}
 T_{\text{new}} = w_i \cdot T_i + w_j \cdot T_j
 \end{equation}
-其中$T_i$和$T_j$分别为原始顶点$v_i$和$v_j$的纹理坐标，权重系数$w_i$和$w_j$基于顶点重要性确定：
+其中，$T_i$和$T_j$分别为原始顶点$v_i$和$v_j$的纹理坐标，权重系数$w_i$和$w_j$基于顶点重要性确定：
 \begin{equation}
 w_i = \frac{I(v_i, t) \cdot A_i}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}, \quad
 w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
 \end{equation}
-其中$I(v_i, t)$和$I(v_j, t)$为顶点在时间$t$处的时空运动特征重要性，$A_i$和$A_j$为顶点$v_i$和$v_j$在原始网格中的影响区域面积。
+其中，$I(v_i, t)$和$I(v_j, t)$为顶点在时间$t$处的时空运动特征重要性，$A_i$和$A_j$为顶点$v_i$和$v_j$在原始网格中的影响区域面积。
 算法迭代执行上述边折叠操作直至达到目标简化率$R_{\text{target}}$或优先队列为空。
 
 综上所述，时空运动特征驱动的动画网格层次简化算法的执行流程包含以下步骤，其伪代码实现如算法\ref{alg:spatiotemporal-motion-simplification}所示：
 
 （a）顶点时空运动特征重要性计算：算法首先遍历动画网格中的每个顶点，计算其时空运动特征重要性。
+
+
+（b）边折叠优先队列初始化：在计算顶点重要性的基础上，算法为网格中的每条边计算综合折叠代价。折叠代价由三部分组成：多特征平均偏差、时空运动特征重要性权重和时序运动误差。通过预设的权重系数将这些分量组合成最终折叠代价，并构建按代价排序的优先队列。
 
 \begin{algorithm}[htbp]
 \caption{时空运动特征驱动的动画网格层次简化算法}
@@ -210,20 +210,20 @@ w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
 \Ensure 简化后的动画网格层次 $\{M_i\}$
 
 \Function{\textbf{STMF-DS}}{$M$, $R$}
-    \State \textbf{// Step 1: 计算顶点时空运动特征重要性}
+    \State // Step 1: 计算顶点时空运动特征重要性
 
     \For{\textbf{each} vertex $v$ \textbf{in} $M$}
         \State $I(v) \gets \text{computeVertexImportance}(v)$
     \EndFor
 
-    \State \textbf{Step 2: 初始化边折叠优先队列}
+    \State //Step 2: 初始化边折叠优先队列
     \State $Q \gets \text{emptyPriorityQueue}$
     \For{\textbf{each} edge $e_{ij}$ \textbf{in} $M$}
         \State $C \gets \text{computeEdgeCollapseCost}(e_{ij})$
         \State $Q.\text{insert}(e_{ij}, C)$
     \EndFor
 
-   \State \textbf{Step 3: 迭代边折叠}
+   \State //Step 3: 迭代边折叠
     \While{$\text{simplificationRatio}(M) < R$ \textbf{and} $\neg Q.\text{isEmpty}()$}
         \State $e_{ij} \gets Q.\text{extractMin}()$
         \If{$\text{motionDistortion}(e_{ij}) > \text{threshold}$}
@@ -240,11 +240,11 @@ w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
         \EndFor
     \EndWhile
     
-    \State \textbf{Step 4: 精简关键帧并插值}
+    \State //Step 4: 精简关键帧并插值
     \State $\text{simplifyKeyframes}()$
     \State $\text{interpolateKeyframes}()$
     
-    \State \textbf{Step 5: 优化纹理}
+    \State //Step 5: 优化纹理
     \State $\text{optimizeTexture}()$
     
     \State \Return $\text{generateLODLevels}(M)$
@@ -252,7 +252,6 @@ w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
 \end{algorithmic}
 \end{algorithm}
 
-（b）边折叠优先队列初始化：在计算顶点重要性的基础上，算法为网格中的每条边计算综合折叠代价。折叠代价由三部分组成：多特征平均偏差、时空运动特征重要性权重和时序运动误差。通过预设的权重系数将这些分量组合成最终折叠代价，并构建按代价排序的优先队列。
 
 （c）迭代边折叠简化：算法进入迭代简化阶段，从优先队列中提取当前折叠代价最小的边进行折叠操作。在执行折叠前，算法会检验该边折叠可能导致的运动失真程度，若超过预设阈值则跳过此边。对于通过检验的边，执行折叠操作后更新新顶点的时空运动特征重要性、骨骼权重和所有相邻边的折叠代价。算法持续迭代直至达到目标简化率或优先队列为空。
 
@@ -265,7 +264,7 @@ w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
 
 
 \subsection{感知引导的自适应细分LOD算法}
-针对离散 LOD 切换机制难以适配快速变化的视觉注意力导致时空资源错配的问题，本节提出感知引导的自适应细分LOD算法（Perception-Guided adaptive Tessellation LOD Algorithm, PGT-LOD）。该算法将将离散简化层次与连续硬件细分技术有机结合，利用感知模型实现细分程度的动态适配，构建动画网格在时空维度上的平滑细节过渡和高效资源分配机制。该算法执行流程如图\ref{fig:adaptive_lod}所示。其核心工作流程可分为以下两步：
+针对离散 LOD 切换机制难以适配快速变化的视觉注意力导致时空资源错配的问题，本节提出感知引导的自适应细分LOD算法（Perception-Guided adaptive Tessellation LOD Algorithm, PGT-LOD）。该算法将将离散简化层次与连续硬件细分技术有机结合，利用感知模型实现细分程度的动态适配，构建动画网格在时空维度上的平滑细节过渡和高效资源分配机制。该算法执行流程如图\ref{fig:adaptive_lod}所示，其核心工作流程可分为以下两步：
 
 \begin{figure}[htbp]
     \centering
@@ -275,15 +274,15 @@ w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
 \end{figure}
 
 首先，使用离散 LOD 技术根据注视点位置初始选择基础动画网格。
-考虑到显存带宽与存储开销的平衡，该算法依据视觉偏心度将可视区域分为三个基础层级
-即相应地需要三个基础模型，基于前文提出的时空运动特征驱动的动画网格层次简化算法生成的简化结果进行构建：
+考虑到显存带宽与存储开销的平衡，算法依据视觉偏心度将可视区域分为三个基础层级
+即相应地需要三个基础动画网格模型，基于前文提出的时空运动特征驱动的动画网格层次简化算法生成的简化结果进行构建：
 高精度层级（LOD0），适用于注视点中心凹区域，保留完整的骨骼蒙皮权重与高频几何特征，为后续的高精度细分提供拓扑支撑；
 中精度层级（LOD1），适用于注视点周围区域，在保证基本视觉轮廓的同时适当降低几何复杂度，符合人类视觉在中等偏心度下分辨能力衰减的特性；
 低精度层级（LOD2）：适用于注视点外围区域，仅保留基本的体积结构与运动骨架，最大程度减少顶点处理负载。
 
 其次，利用GPU硬件镶嵌技术执行自适应细分。在选定的基础 LOD 层级内，算法根据实时注视点位置、castleCSF-TS 感知模型和屏幕空间投影误差对动画网格执行自适应镶嵌细分。该机制在离散的LOD层级之间构建了连续的几何密度梯度，使得在中央凹区域拥有像素级的高频细节，而在外围区域逐渐降低几何密度，实现了几何密度与人眼视觉感知能力的精准匹配。
 
-为实现注视点引导的连续细节变化，本文构建了基于分辨率缩放因子的细分因子计算模型。不同于传统仅依赖距离的LOD策略，本模型将 castleCSF-TS 感知模型计算得到的分辨率缩放因子 $k(t)$ 直接映射为几何细分的控制权重，确保几何负载随扫视抑制效应同步衰减。对于网格中的任意边 $e_{uv}$，其细分因子 $TF_{final}$ 由屏幕空间几何投影与时空感知调制系数共同决定：
+为实现注视点引导的连续细节变化，本文构建了基于分辨率缩放因子的细分因子计算模型。不同于传统仅依赖距离的LOD策略，该模型将 castleCSF-TS 感知模型计算得到的分辨率缩放因子 $k(t)$ 直接映射为几何细分的控制权重，确保几何负载随扫视抑制效应同步衰减。对于网格中的任意边 $e_{uv}$，其细分因子 $TF_{final}$ 由屏幕空间几何投影与时空感知调制系数共同决定：
 \begin{equation}
 TF_{final}(e_{uv}, t) = TF_{geo}(e_{uv}) \cdot \mu_{avg}(e_{uv}, t)
 \label{eq:final_tess_factor}
@@ -326,12 +325,12 @@ $\mu_{avg}$ 为平均时空感知调制系数，此项直接引入了第三章�
 p_{\text{final}}(v) = \alpha \cdot p_i(v) + (1-\alpha) \cdot p_j(v)
 \label{eq:geometry_interpolation}
 \end{equation}
-其中$\alpha$为过渡权重，基于顶点到LOD切换边界的归一化距离$d_{\text{norm}}$计算：
+其中，$\alpha$为过渡权重，基于顶点到LOD切换边界的归一化距离$d_{\text{norm}}$计算：
 \begin{equation}
 \alpha = \text{Smooth}\left(\frac{d_{\text{norm}} - d_{\text{start}}}{d_{\text{end}} - d_{\text{start}}}\right)
 \label{eq:transition_weight}
 \end{equation}
-其中$\text{Smooth}(x) = 3x^2 - 2x^3$为三次平滑函数，$d_{\text{start}}$和$d_{\text{end}}$定义过渡区域的起止边界。该过渡机制减少了离散LOD切换产生的视觉不连续，显著减少了因几何突变导致的运动失真。
+其中，$\text{Smooth}(x) = 3x^2 - 2x^3$为三次平滑函数，$d_{\text{start}}$和$d_{\text{end}}$定义过渡区域的起止边界。该过渡机制减少了离散LOD切换产生的视觉不连续，显著减少了因几何突变导致的运动失真。
 
 针对动画数据，需同时保证时间维度的连贯性与空间维度的一致性。骨骼权重在过渡期间遵循保形原则，设顶点$v$在LOD级别$i$和$j$的骨骼权重向量分别为$w_i$和$w_j$，其过渡期间的权重为：
 \begin{equation}
@@ -344,18 +343,22 @@ w_{\text{transition}}(v) = \frac{\alpha \cdot w_i(v) + (1-\alpha) \cdot w_j(v)}{
 P_{\text{transition}}(t) = \alpha \cdot P_i(\phi_i(t)) + (1-\alpha) \cdot P_j(\phi_j(t))
 \label{eq:pose_interpolation}
 \end{equation}
-其中$P_i$和$P_j$分别为LOD级别$i$和$j$的骨骼姿势函数，$\phi_i(t)$和$\phi_j(t)$为时间映射函数，确保不同简化率的动画序列在同一时刻保持姿势同步。
+其中，$P_i$和$P_j$分别为LOD级别$i$和$j$的骨骼姿势函数，$\phi_i(t)$和$\phi_j(t)$为时间映射函数，确保不同简化率的动画序列在同一时刻保持姿势同步。
 
 此外，为避免细分导致的纹理混叠，算法采用基于纹理梯度的各向异性 Mipmap 选择策略。Mipmap 层级 $\lambda$ 定义为：
 \begin{equation}
 \lambda = \log_2 \left( \max \left( | \nabla T_u |, | \nabla T_v | \right) \right)
 \label{eq:mipmap_gradient}
 \end{equation}
-其中 $\nabla T_u = (\frac{\partial u}{\partial x}, \frac{\partial u}{\partial y})$ 和 $\nabla T_v = (\frac{\partial v}{\partial x}, \frac{\partial v}{\partial y})$ 分别为纹理坐标在屏幕空间的偏导数。该方法能精确捕捉细分产生的狭长三角形引起的纹理拉伸，自动匹配高频纹理细节。
+其中， $\nabla T_u = (\frac{\partial u}{\partial x}, \frac{\partial u}{\partial y})$ 和 $\nabla T_v = (\frac{\partial v}{\partial x}, \frac{\partial v}{\partial y})$ 分别为纹理坐标在屏幕空间的偏导数。该方法能精确捕捉细分产生的狭长三角形引起的纹理拉伸，自动匹配高频纹理细节。
 
 综上所述，感知引导的自适应细分LOD算法的执行流程包含以下步骤，其伪代码实现如算法\ref{alg:perceptual-guided-adaptive-tessellation}所示：
 
 （a）根据注视点位置选择基础LOD：算法首先计算动画网格各顶点到注视点的平均偏心度，根据平均偏心度与预设阈值$e_f$和$e_m$的比较，选择合适的基础LOD层次。若平均偏心度小于等于$e_f$，选择高精度$\text{LOD}_0$，若在$e_f$与$e_m$之间，选择中精度$\text{LOD}_1$，否则选择低精度$\text{LOD}_2$。
+
+
+
+（b）计算感知驱动的细分因子：首先，对基础LOD中的每条边，计算其在屏幕空间的投影像素长度，依据分段函数计算几何基准细分因子$TF_{geo}$，以防止对远距离微小物体进行无效的过度细分。其次，调用castleCSF-TS模型获取当前时刻的分辨率缩放因子$k(t)$，结合顶点偏心度计算时空感知调制系数$\mu$，并取边两端的均值得到$\mu_{avg}$。最后，将几何基准细分因子与平均时空感知调制系数相乘，得到最终的边细分因子$TF_{final}$，并据此计算三角形内部细分因子，确保几何密度与当前时空视觉感知能力精准匹配。
 
 \begin{algorithm}[h]
 \caption{感知引导的自适应细分LOD算法}
@@ -365,7 +368,7 @@ P_{\text{transition}}(t) = \alpha \cdot P_i(\phi_i(t)) + (1-\alpha) \cdot P_j(\p
 \Ensure 细分后的动画网格 $M_{tessellated}$
 
 \Function{\textbf{PGT-LOD}}{$M$, $gaze\_point$, $t$, $\{L_0, L_1, L_2\}$, $e_f$, $e_m$}
-    \State \textbf{// Step 1: 根据注视点位置选择基础LOD}
+    \State // Step 1: 根据注视点位置选择基础LOD
     \If{$\exists M$}
         \State $e_{avg} \leftarrow \text{computeAverageEccentricity}(M, gaze\_point)$
         \If{$e_{avg} \leq e_f$}
@@ -377,13 +380,13 @@ P_{\text{transition}}(t) = \alpha \cdot P_i(\phi_i(t)) + (1-\alpha) \cdot P_j(\p
         \EndIf
     \EndIf
 
-    \State \textbf{// Step 2: 计算感知驱动的细分因子}
+    \State // Step 2: 计算感知驱动的细分因子
     \State $edgeTFs \leftarrow \text{computeEdgeTessellationFactors}(baseLOD, gaze\_point, vertexTFs)$
 
-    \State \textbf{// Step 3: 执行自适应镶嵌细分}
+    \State // Step 3: 执行自适应镶嵌细分
     \State $M_{tessellated} \leftarrow \text{performAdaptiveTessellation}(baseLOD, edgeTFs)$
 
-    \State \textbf{// Step 4: 处理纹理和过渡}
+    \State // Step 4: 处理纹理和过渡
     \State $\text{processTextureCoordinates}(M_{tessellated})$
     \State $\text{selectMipmapLevels}(M_{tessellated})$
     \If{$\text{needsTransition}()$}
@@ -396,8 +399,6 @@ P_{\text{transition}}(t) = \alpha \cdot P_i(\phi_i(t)) + (1-\alpha) \cdot P_j(\p
 \end{algorithmic}
 \end{algorithm}
 
-
-（b）计算感知驱动的细分因子：首先，对基础LOD中的每条边，计算其在屏幕空间的投影像素长度，依据分段函数计算几何基准细分因子$TF_{geo}$，以防止对远距离微小物体进行无效的过度细分。其次，调用castleCSF-TS模型获取当前时刻的分辨率缩放因子$k(t)$，结合顶点偏心度计算时空感知调制系数$\mu$，并取边两端的均值得到$\mu_{avg}$。最后，将几何基准细分因子与平均时空感知调制系数相乘，得到最终的边细分因子$TF_{final}$，并据此计算三角形内部细分因子，确保几何密度与当前时空视觉感知能力精准匹配。
 
 （c）执行自适应镶嵌细分：利用计算得到的边细分因子和内部细分因子，对基础LOD 动画网格执行自适应镶嵌细分操作，在扫视抑制期间及扫视结束后视觉敏感度恢复初期，细分因子自动衰减，从而大幅减少几何图元的生成。
 
@@ -422,7 +423,7 @@ P_{\text{transition}}(t) = \alpha \cdot P_i(\phi_i(t)) + (1-\alpha) \cdot P_j(\p
 在实验数据集选取方面，为充分测试算法处理复杂形变与运动连贯性的能力，避免使用简单静态模型蒙皮带来的局限性，，本实验选取了计算机图形学领域公认的动态网格基准数据集：
 Galloping Horse与Humanoid，
 其中 Galloping Horse 数据集\cite{4-3-1-1}具有显著的四肢高频摆动与躯干肌肉的细微形变，包含 48 帧，原始三角形面数 168434，用于测试算法在处理大幅度关节旋转时的体积保持能力和在快速运动下的拓扑稳定性。
-Humanoid 数据集为典型的VR角色，包含 300 帧，原始三角形面数 508000，用于模拟真实交互场景，并作为后续主观实验的测试载体。
+Humanoid 数据集为典型的VR角色，包含 300 帧，原始三角形面数 508000，用于模拟真实交互场景。
 所有数据集在实验前均进行了标准化处理，将顶点坐标归一化至单位包围盒内，确保误差度量的一致性。
 
 
@@ -517,7 +518,8 @@ $R_{eff}$ 越接近 100\%，表明算法表明算法的资源分配策略越精�
 本实验选取了Standard QEM\cite{1-2-22}、Avg-QEM\cite{4-3-3-0}、AQEM\cite{4-3-3-1} 及 SFSP-QEM \cite{4-3-3-2}四种有代表性的经典及前沿的动画网格简化算法作为对比基准，
 在 Galloping Horse 和 Humanoid 两个数据集进行了多级简化测试，生成保留率为 40\%、20\% 和 5\% 的多级 LOD 模型。
 表\ref{tab:4.1}展示了各算法在在两个数据集、三种简化率下的几何与时序误差的量化对比结果。
-\begin{table}[htbp]
+
+\begin{table}[H]
     \centering
     \caption{各简化算法在不同测试条件下的几何与时序误差对比}
     \label{tab:4.1}
@@ -532,8 +534,8 @@ $R_{eff}$ 越接近 100\%，表明算法表明算法的资源分配策略越精�
         >{\centering\arraybackslash}m{0.10\textwidth}
         >{\centering\arraybackslash}m{0.09\textwidth}}
         \toprule
-        \textbf{数据集} & \textbf{简化率} & \textbf{评价指标} & \textbf{Standard QEM} & \textbf{Avg-QEM} & \textbf{SFSP-QEM} & \textbf{AQEM} & \textbf{Ours} \\
-        & & & \textbf{(1997)} & \textbf{(1998)} & \textbf{(2025)} & \textbf{(2019)} & \textbf{} \\
+        \textbf{数据集} & \textbf{简化率} & \textbf{评价指标} & \textbf{Standard QEM} & \textbf{Avg-QEM} & \textbf{SFSP-QEM} & \textbf{AQEM} & \textbf{STMF-DS} \\
+        & & & \textbf{(1997)} & \textbf{(1998)} & \textbf{(2025)} & \textbf{(2019)} & \textbf{ours} \\
         \midrule
         \multirow{9}*{\makecell{Galloping\\Horse}} & \multirow{3}*{40\%} & $d_{H_{dyn}}$ (mm) & 8.52 & 6.45 & \textbf{5.76} & 6.15 & 6.03 \\
         & & STED ($\times 10^{-3}$) & 16.26 & 13.80 & 12.05 & 9.24 & \textbf{7.35} \\
@@ -568,8 +570,8 @@ $R_{eff}$ 越接近 100\%，表明算法表明算法的资源分配策略越精�
 即便在简化率仅为5\%的极限情况下，其STED误差依然远低于其他对比算法，展现了该方法在高压缩率场景下的鲁棒性。
 同时，跨数据集的测试结果表明：无论是在运动模式相对规律的Galloping Horse 数据集，还是在动作更为复杂的 Humanoid 数据集上，本算法均能稳定地交付最优的综合性能，具有良好的泛化潜力。
 
-为直观评估各算法处理动态网格的视觉效果，图 \ref{fig:simplification_comparison} 展示了 Galloping Horse 数据集第 24 帧在 20\% 简化率下的对比结果。
-\begin{figure}[htbp]
+为直观评估不同算法在处理动画网格时的细节保持能力，图 \ref{fig:simplification_comparison} 展示了各算法在 Galloping Horse 数据集第 24 帧在 20\% 简化率下的对比结果。
+\begin{figure}[H]
     \centering
     
     % 第一行
@@ -641,14 +643,23 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 %     \label{fig:simplification_comparison}
 % \end{figure}
 
-\begin{figure}[htbp]
+
+图 \ref{fig:animated_meshes} 与图 \ref{fig:animated_meshes_wireframe} 分别从渲染效果与网格拓扑两个维度，直观展示了本文算法生成的不同细节层次模型相对于原始动画序列的演变特征。
+其中，图 \ref{fig:animated_meshes} 呈现了原始动画网格及生成的 LOD0、LOD1、LOD2 三个层级在连续运动帧中的视觉效果，各层级模型在动态播放中均保持了高度一致的视觉外观，有效验证了本文算法在动态轮廓上的高保真度。
+图 \ref{fig:animated_meshes_wireframe} 进一步揭示了相应网格拓扑分布规律。
+随着简化程度的加深，算法体现出显著的区域差异化简化策略：在马匹躯干等运动幅度较小且曲率平坦的区域，网格密度被大幅稀疏化，
+而在膝盖、头部等关键关节连接处，拓扑结构始终得到高密度保留。
+这种基于时空运动显著性的拓扑优化策略，最大程度维持了低多边形状态下的骨骼形变能力，为在线渲染阶段的LOD平滑切换奠定了坚实基础。
+
+
+\begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{../figures/fourChapter/简化效果.png}
     \caption{3种不同层次的动画网格}
     \label{fig:animated_meshes}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
     
     % 第一行
@@ -669,19 +680,9 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/LOD2.png}
     }
     
-    \caption{简化结果网格拓扑图}
+    \caption{简化结果网格拓扑}
     \label{fig:animated_meshes_wireframe}
 \end{figure}
-
-
-
-图 \ref{fig:animated_meshes} 与图 \ref{fig:animated_meshes_wireframe} 分别从渲染效果与网格拓扑两个维度，直观展示了本文算法生成的不同细节层次模型相对于原始动画序列的演变特征。
-其中，图 \ref{fig:animated_meshes} 呈现了原始动画网格及生成的 LOD0、LOD1、LOD2 三个层级在连续运动帧中的视觉效果，各层级模型在动态播放中均保持了高度一致的视觉外观，有效验证了本文算法在动态轮廓上的高保真度。
-图 \ref{fig:animated_meshes_wireframe} 进一步揭示了相应网格拓扑分布规律。
-随着简化程度的加深，算法体现出显著的区域差异化简化策略：在马匹躯干等运动幅度较小且曲率平坦的区域，网格密度被大幅稀疏化，
-而在膝盖、头部等关键关节连接处，拓扑结构始终得到高密度保留。
-这种基于时空运动显著性的拓扑优化策略，最大程度维持了低多边形状态下的骨骼形变能力，为在线渲染阶段的LOD平滑切换奠定了坚实基础。
-
 
 % \begin{figure}[htbp]
 %     \centering
@@ -691,7 +692,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 % \end{figure}
 
 
-综上所述，本节通过定量误差分析与定性视觉评估，全面验证了本文算法在离线预处理阶段的有效性。
+综上所述，本节通过定量误差分析与定性视觉评估，全面验证了时空运动特征驱动的动画网格层次简化算法在离线预处理阶段的有效性。
 实验结果表明，该算法通过融合时空运动特征，在保证几何结构稳定的同时，有效减少了动态场景中的运动失真，实现了计算效率与视觉感知质量的协同优化。
 
 
@@ -711,7 +712,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/高精度网格工厂图.png}
     }
     
-    \caption{高精度动画网格渲染效果与网络拓扑结构}
+    \caption{高精度动画网格渲染效果与拓扑结构}
     \label{fig:high}
 \end{figure}
 
@@ -728,7 +729,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
         \includegraphics[width=0.48\textwidth]{../figures/fourChapter/低精度网格工厂图.png}
     }
     
-    \caption{低精度动画网格渲染效果与网络拓扑结构}
+    \caption{低精度动画网格渲染效果与拓扑结构}
     \label{fig:low}
 \end{figure}
 
@@ -837,6 +838,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 
 为了直观验证上述定量数据的结论，图 \ref{fig:visual_comparison_wind} 展示了三组实验方案在注视点聚焦状态下的渲染细节对比。
 
+
 观察静态距离实验组（图 \ref{fig:static_lod_render}）由于缺乏连续细分机制，在近距离观察高速旋转齿轮时出现了明显的边缘几何锯齿；在视点快速移动时，模型表面纹理容易产生闪烁伪影。静态感知实验组（图 \ref{fig:sp_lod_render}）虽引入了注视点机制，但由于其本质仍是基于离散层级的切换，无法实现平滑过渡，导致在层级交界处容易出现明显的几何突变相比之下，，且细节表现力严重受限于预设模型的精度上限，难以呈现精细的曲面特征。本文算法（图 \ref{fig:our_lod_render}）呈现了更高质量的视觉效果：在注视点中心区域，自适应细分机制生成了平滑的曲面轮廓，消除了锯齿；得益于时间对齐插值法，动画序列在层级过渡期间保持了严格的姿势同步，未出现运动撕裂；同时，基于纹理梯度的各向异性 Mipmap 策略有效匹配了细分三角形，保证了纹理细节的清晰度。
 
 \begin{figure}[htbp]
@@ -879,7 +881,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 
 
 
-综上所述，PGT-LOD 算法通过将离散简化与连续细分有机结合，并辅以时空感知调制与平滑过渡机制，在大幅提升渲染效率的同时，确保了动态场景下的高保真视觉体验。
+综上所述，PGT-LOD 算法通过将离散简化层次与连续细分技术有机结合，通过基于$castleCSF-TS$ 模型的时空感知调制机制，有效解决了传统离散 LOD 切换机制难以适配快速视觉注意力变化而导致的时空资源错配问题，同时，凭借基于几何变形与骨骼权重插值的混合过渡策略，算法显著抑制了层级切换时的视觉跳变与运动失真，在显著提升渲染效率的同时，确保了注视区域内像素级的高频细节表现，实现了计算效率与视觉感知质量在动态虚拟环境下的深度协同与最佳平衡。
 
 
 \section{本章小结}
@@ -887,7 +889,8 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 
 （1）系统剖析了现有动画网格渲染的瓶颈。指出传统LOD基于静态几何误差的简化准则破坏了骨骼动画的运动连贯性，导致高变形区域出现拓扑塌陷与运动瑕疵；同时揭示了离散的LOD层级难以匹配注视点引导的、连续变化的视觉重要性梯度，容易在注视焦点区域出现细节不足或在外围区域存在渲染冗余，造成视觉突变与计算资源分配不均。
 
-（2）提出了时空运动特征驱动的动画网格层次简化算法。在离线预处理阶段，构建了融合运动显著性、几何结构与骨骼蒙皮关联的多维重要性度量模型，在简化决策中引入时序运动误差约束，指导生成了在动画全周期内保持视觉连贯性的多层次细节表示，有效解决了动态拓扑结构丢失的问题。
+（2）提出了时空运动特征驱动的动画网格层次简化算法。在离线预处理阶段，构建了融合运动显著性、几何结构与骨骼蒙皮关联的多维重要性度量模型，在简化决策中引入时序运动误差约束，指导生成了在动画全周期内保持视觉连贯性的多层次细节表示，有效解决了动画网格中的运动失
+真问题。
 
 （3）提出了感知引导的自适应细分LOD算法。在在线渲染阶段，将离散LOD技术与连续GPU镶嵌技术结合，依据castleCSF-TS模型实时计算的视觉敏感度，动态调整基础网格的细分因子，并引入基于过渡区域的混合插值机制，实现了像素级精度的按需细分与平滑的层级过渡，有效消除了LOD切换产生的视觉跳变。
 

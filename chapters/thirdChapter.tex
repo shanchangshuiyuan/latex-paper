@@ -206,7 +206,7 @@ $\gamma_{\text{sacc}}$是扫视过程中的抑制强度，通常为0.35\cite{3-2
 
 在空间维度，视觉系统对不同空间尺度信息的处理能力受空间频率 $\rho$、亮度及刺激面积的显著影响。
 无色通道呈现经典的带通特性，而彩色通道由于缺乏强烈的侧向抑制，主要呈现低通特性。
-对于无色通道的空间响应，模型采用截断对数抛物线模型来模拟其带通形状及低频衰减\cite{3-2-6}：
+对于无色通道的空间响应，模型采用截断对数抛物线模型来模拟其带通形状及低频衰减\cite{1-2-9}：
 \begin{equation}
 I_S^{Ach}(\rho, Y) = 
 \begin{cases} 
@@ -332,7 +332,7 @@ S_{\mathrm{total}} = \sqrt{ \frac{3}{ \left( \frac{\Delta \widehat{L}}{L_0} \rig
 为确立公式 (\ref{eq:sf_recovery_raw}) 和 (\ref{eq:alpha_t}) 中描述扫视时序特征的关键参数$(k_1, k_2, k_3)$并精确量化扫视后视觉敏感度的恢复轨迹，
 本节设计并实施了严格的眼动心理物理学实验，旨在获取扫视后时间与可分辨最高空间频率之间的定量关系，完成模型中扫视后时间恢复因子 $\alpha(t)$ 的数值标定。
 
-实验共招募了12名视力正常或矫正至正常的健康成年参与者，所有参与者均通过色觉测试，无眼部疾病史，并在实验前签署知情同意书。
+实验共招募了12名视力正常或矫正至正常的健康成年参与者，样本量设定参考了心理物理学经典范式\cite{3-2-6}，所有参与者均通过色觉测试，无眼部疾病史，并在实验前签署知情同意书。
 实验在光照可控的隔音暗室中进行，视觉刺激由一台经过伽马校准的 55英寸 OLED 显示器呈现，背景亮度设定为 7.2 cd/m$^2$ 以模拟标准观看环境。眼球运动数据由 SR Research EyeLink 1000 Plus 眼动仪以 1000 Hz 的高采样率实时采集，通过下颌托限制头部运动以确保追踪精度。
 
 实验采用单试次设计，同时要求每位参与者必须完成 600 个具有正确注视和眼动行为的有效试次，每个试次包含四个严格时序控制的阶段：
@@ -704,11 +704,15 @@ K(e, t, s) = \max \left( k_{min}, \, \min \left( 1.0, \, \frac{k(t) \cdot S_{tot
   \caption{实验软硬件环境配置}
   \label{tab:experiment-configuration}
   \renewcommand{\arraystretch}{1.3}
-  \begin{tabularx}{\textwidth}{>{\centering\arraybackslash}m{1.5cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+  % 定义一个新的列类型 Y，使其水平垂直居中
+  \newcolumntype{Y}{>{\centering\arraybackslash}X}
+  
+  \begin{tabularx}{\textwidth}{>{\centering\arraybackslash}m{2cm} Y Y}
     \toprule
     \textbf{类别} & \textbf{名称} & \textbf{配置/版本} \\
     \midrule
-    \textbf{硬件} & 中央处理器 (CPU) & Intel Core i9-13900K \\
+    % 硬件跨越 7 行
+    \multirow{7}{*}{\textbf{硬件}} & 中央处理器 (CPU) & Intel Core i9-13900K \\
     & 图形处理器 (GPU) & NVIDIA GeForce RTX 3090 \\
     & 内存 & 64GB DDR5 (2×32GB) \\
     & 主VR头显 & HTC Vive Pro Eye  \\
@@ -716,7 +720,8 @@ K(e, t, s) = \max \left( k_{min}, \, \min \left( 1.0, \, \frac{k(t) \cdot S_{tot
     & 辅助高精度眼动仪 & SR Research EyeLink 1000 Plus \\
     & 定位基站 & SteamVR Base Station 2.0 \\
     \midrule
-    \textbf{软件} & 操作系统 & Windows 11 Professional \\
+    % 软件跨越 4 行
+    \multirow{4}{*}{\textbf{软件}} & 操作系统 & Windows 11 Professional \\
     & 渲染与开发引擎 & Unity 2021.3 LTS \\
     & 眼动追踪SDK & SRanipal SDK v1.3.2 \\
     & 数据分析 & MATLAB R2024a \\
@@ -845,7 +850,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
         >{\centering\arraybackslash}p{0.14\textwidth}
         >{\centering\arraybackslash}p{0.15\textwidth}}
         \toprule
-        \multirow{2}{*}{\textbf{测试参数维度}} & 
+        \multirow{3}{*}{\textbf{测试参数维度}} & 
         \multicolumn{5}{c}{\textbf{各感知模型预测误差（均值±标准差）}} \\
         & \textbf{Barten's CSF} & \textbf{stelaCSF} & \textbf{Chromatic} & \textbf{castleCSF} & \textbf{\makecell{castleCSF-TS}} \\
         & \textbf{(1999)} & \textbf{(2022)} & \textbf{(2021)} & \textbf{(2024)} & \textbf{(ours)} \\
@@ -876,7 +881,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
     \label{tab:3.3}
     \renewcommand{\arraystretch}{1.5}
     \begin{tabularx}{\textwidth}{
-        >{\raggedright\arraybackslash}m{0.28\textwidth}
+        >{\centering\arraybackslash}m{0.28\textwidth}
         >{\centering\arraybackslash}m{0.15\textwidth}
         >{\centering\arraybackslash}m{0.10\textwidth}
         >{\centering\arraybackslash}m{0.09\textwidth}

@@ -525,7 +525,7 @@ $R_{eff}$ 越接近 100\%，表明算法表明算法的资源分配策略越精�
     \label{tab:4.1}
     \renewcommand{\arraystretch}{1.5}
     \begin{tabularx}{\textwidth}{
-        >{\raggedright\arraybackslash}m{0.10\textwidth}
+        >{\centering\arraybackslash}m{0.10\textwidth} % 修改为 centering
         >{\centering\arraybackslash}m{0.08\textwidth}
         >{\centering\arraybackslash}m{0.15\textwidth}
         >{\centering\arraybackslash}m{0.08\textwidth}
@@ -534,25 +534,30 @@ $R_{eff}$ 越接近 100\%，表明算法表明算法的资源分配策略越精�
         >{\centering\arraybackslash}m{0.10\textwidth}
         >{\centering\arraybackslash}m{0.09\textwidth}}
         \toprule
-        \textbf{数据集} & \textbf{简化率} & \textbf{评价指标} & \textbf{Standard QEM} & \textbf{Avg-QEM} & \textbf{SFSP-QEM} & \textbf{AQEM} & \textbf{STMF-DS} \\
-        & & & \textbf{(1997)} & \textbf{(1998)} & \textbf{(2025)} & \textbf{(2019)} & \textbf{ours} \\
+        % 表头跨 2 行居中
+        \multirow{2}{*}{\textbf{数据集}} & \multirow{2}{*}{\textbf{简化率}} & \multirow{2}{*}{\textbf{评价指标}} & \textbf{Standard QEM} & \textbf{Avg-QEM} & \textbf{SFSP-QEM} & \textbf{AQEM} & \textbf{STMF-DS} \\
+        & & & \textbf{(1997)} & \textbf{(1998)} & \textbf{(2025)} & \textbf{(2019)} & \textbf{(ours)} \\
         \midrule
-        \multirow{9}*{\makecell{Galloping\\Horse}} & \multirow{3}*{40\%} & $d_{H_{dyn}}$ (mm) & 8.52 & 6.45 & \textbf{5.76} & 6.15 & 6.03 \\
+        
+        % 数据集跨 6 行 (3个百分比 * 2个指标)
+        \multirow{6}*{\makecell{Galloping\\Horse}} & \multirow{2}*{40\%} & $d_{H_{dyn}}$ (mm) & 8.52 & 6.45 & \textbf{5.76} & 6.15 & 6.03 \\
         & & STED ($\times 10^{-3}$) & 16.26 & 13.80 & 12.05 & 9.24 & \textbf{7.35} \\
         \cmidrule{2-8}
-        & \multirow{3}*{20\%} & $d_{H_{dyn}}$ (mm) & 12.63 & 9.45 & \textbf{8.25} & 9.24 & 8.64 \\
+        & \multirow{2}*{20\%} & $d_{H_{dyn}}$ (mm) & 12.63 & 9.45 & \textbf{8.25} & 9.24 & 8.64 \\
         & & STED ($\times 10^{-3}$) & 25.62 & 20.36 & 17.40 & 13.05 & \textbf{10.35} \\
         \cmidrule{2-8}
-        & \multirow{3}*{5\%} & $d_{H_{dyn}}$ (mm) & 22.56 & 17.55 & \textbf{15.36} & 17.76 & 16.05 \\
+        & \multirow{2}*{5\%} & $d_{H_{dyn}}$ (mm) & 22.56 & 17.55 & \textbf{15.36} & 17.76 & 16.05 \\
         & & STED ($\times 10^{-3}$) & 45.69 & 39.52 & 32.75 & 25.86 & \textbf{20.85} \\
         \midrule
-        \multirow{9}*{Humanoid} & \multirow{3}*{40\%} & $d_{H_{dyn}}$ (mm) & 13.70 & 10.84 & \textbf{9.76} & 10.50 & 9.90 \\
+        
+        % Humanoid 同理跨 6 行
+        \multirow{6}*{Humanoid} & \multirow{2}*{40\%} & $d_{H_{dyn}}$ (mm) & 13.70 & 10.84 & \textbf{9.76} & 10.50 & 9.90 \\
         & & STED ($\times 10^{-3}$) & 26.85 & 23.36 & 20.55 & 16.26 & \textbf{12.84} \\
         \cmidrule{2-8}
-        & \multirow{3}*{20\%} & $d_{H_{dyn}}$ (mm) & 18.64 & 14.50 & \textbf{13.16} & 14.24 & 13.50 \\
+        & \multirow{2}*{20\%} & $d_{H_{dyn}}$ (mm) & 18.64 & 14.50 & \textbf{13.16} & 14.24 & 13.50 \\
         & & STED ($\times 10^{-3}$) & 38.55 & 32.35 & 28.76 & 22.05 & \textbf{17.46} \\
         \cmidrule{2-8}
-        & \multirow{3}*{5\%} & $d_{H_{dyn}}$ (mm) & 32.70 & 25.70 & \textbf{22.50} & 24.84 & 23.16 \\
+        & \multirow{2}*{5\%} & $d_{H_{dyn}}$ (mm) & 32.70 & 25.70 & \textbf{22.50} & 24.84 & 23.16 \\
         & & STED ($\times 10^{-3}$) & 66.45 & 53.56 & 47.55 & 38.85 & \textbf{28.86} \\
         \bottomrule
     \end{tabularx}
@@ -781,7 +786,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）虽改善了关节处的网格密度，但
 % 表 \ref{tab:performance_wind} 展示了两组实验的渲染性能统计结果。实验结果显示，本文提出的算法在各项关键性能指标上均表现出显著优势，具体分析如下：
 \begin{table}[htbp] 
 \centering 
-\caption{混合动态场景下各算法渲染性能统计结果}
+\caption{各算法总体渲染性能统计结果}
 \label{tab:performance_wind} 
 \renewcommand{\arraystretch}{1.5} 
 \begin{tabularx}{\textwidth}{ 

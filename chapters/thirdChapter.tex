@@ -145,7 +145,7 @@ $\Delta D_{YV}$代表黄-紫（Yellow-Violet）对抗通道响应，反映了S�
 在建立了颜色处理框架后，需要转向时间维度的建模。本模型将视觉系统的时间响应分解为两个层面的作用：一是对刺激本身时间频率（如闪烁、运动速度）的稳态响应；二是由观察者自身眼动状态（扫视）引发的、独立于刺激频率的动态调制。
 这种双重建模方法能够同时处理刺激的固有特性和观察者的主动行为，使得模型更加贴近真实的视觉体验。
 
-具体到稳态时间频率响应函数的建立，心理物理学和电生理学证据表明\cite{3-2}，视觉系统存在多个时间通道，主要包括处理持续信息的持续通道和处理快速变化信息的瞬态通道\cite{3-3}\cite{3-4}。
+具体到稳态时间频率响应函数的建立，心理物理学和电生理学证据表明，视觉系统存在多个时间通道，主要包括处理持续信息的持续通道和处理快速变化信息的瞬态通道\cite{3-4}。
 对于所有三个颜色通道，其持续通道对时间频率\(\omega\)的响应可用广义的指数衰减函数刻画\cite{1-2-8}：
 \begin{equation}
 R_{S}^{c}(\omega) = \exp\left( - \frac{\omega^{\beta_{S}^{c}}}{\sigma_{S}^{c}} \right),\quad c \in \{ Ach,RG,YV\}
@@ -157,7 +157,7 @@ R_{S}^{c}(\omega) = \exp\left( - \frac{\omega^{\beta_{S}^{c}}}{\sigma_{S}^{c}} \
 R_T^{Ach}(\omega, Y) = \exp\left(-\frac{\left|\omega^{\beta_T^{Ach}} - (\omega_0(Y))^{\beta_T^{Ach}}\right|^2}{\sigma_T^{Ach}}\right)
 \label{eq:transient_channel}
 \end{equation}
-其中，\(\beta_T^{Ach}\)和\(\sigma_T^{Ach}\)是形状参数，\(\omega_0(Y)\)是峰值时间频率，随环境亮度\(Y\)的增加向更高频率移动\cite{4-2}：
+其中，\(\beta_T^{Ach}\)和\(\sigma_T^{Ach}\)是形状参数，\(\omega_0(Y)\)是峰值时间频率，随环境亮度\(Y\)的增加向更高频率移动：
 \begin{equation}
 \omega_0(Y) = m_{\omega}^{Ach} \log_{10} Y + c_{\omega}^{Ach}
 \label{eq:peak_temporal_freq}
@@ -819,7 +819,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
         \toprule
         \textbf{感知模型} & \textbf{平均训练误差} & \textbf{平均测试误差} \\
         \midrule
-        original Barten's CSF (1999) & $4.43 \pm 0.07$ & $4.51 \pm 0.31$ \\
+        original Barten's CSF (2003) & $4.43 \pm 0.07$ & $4.51 \pm 0.31$ \\
         Chromatic pyramid (2021) & $5.12 \pm 0.15$ & $5.30 \pm 0.26$ \\
         stelaCSF (2022) & $4.18 \pm 0.09$ & $4.36 \pm 0.41$ \\
         castleCSF (2024) & $3.43 \pm 0.08$ & $3.64 \pm 0.23$ \\
@@ -848,7 +848,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
         \multirow{3}{*}{\textbf{测试参数维度}} & 
         \multicolumn{5}{c}{\textbf{各感知模型预测误差（均值±标准差）}} \\
         & \textbf{Barten's CSF} & \textbf{stelaCSF} & \textbf{Chromatic} & \textbf{castleCSF} & \textbf{\makecell{castleCSF-TS}} \\
-        & \textbf{(1999)} & \textbf{(2022)} & \textbf{(2021)} & \textbf{(2024)} & \textbf{(ours)} \\
+        & \textbf{(2003)} & \textbf{(2022)} & \textbf{(2021)} & \textbf{(2024)} & \textbf{(ours)} \\
         \midrule
         $\rho$, $Y$, $a$ & $3.49 \pm 0.45$ & $2.78 \pm 0.49$ & $\times$ & $\mathbf{2.67 \pm 0.31}$ & $2.69 \pm 0.30$ \\
         $\rho$, $Y$, $a$, $\omega$ & $3.89 \pm 0.36$ & $4.37 \pm 0.39$ & $\times$ & $3.53 \pm 0.31$ & $\mathbf{3.45 \pm 0.34}$ \\
@@ -880,7 +880,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
         \toprule
         \textbf{感知模型} & \textbf{自由参数个数} & \textbf{SSE} & \textbf{自由度} & \textbf{F-test} & \textbf{AIC} \\
         \midrule
-        original Barten's CSF (1999) & 13 & 38.302 & 766 & 17.592 & -2317.6 \\
+        original Barten's CSF (2003) & 13 & 38.302 & 766 & 17.592 & -2317.6 \\
         Chromatic pyramid (2021) & 4 & 54.012 & 775 & 16.378 & -2048.4 \\
         stelaCSF (2022) & 21 & 35.152 & 758 & 17.631 & -2374.5 \\
         castleCSF (2024) & 53 & 19.517 & 726 & 18.033 & -2761.9 \\
@@ -979,7 +979,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
 实验的核心目标在于验证基于castleCSF-TS模型指导的动态分辨率调整策略在真实图像内容下的感知透明性，即确认扫视后的恢复窗口期内降低渲染分辨率不会被用户主观察觉。
 
 实验招募了与第\ref{sec:融合扫视时序特征的多维视觉感知模型}节眼动心理物理学实验相同的 12 名受试者。
-为确保实验刺激的标准化与普适性，从FOIQA\cite{4-5}等公开图像质量评估数据集中，选取了三十张未经失真处理的原始图像，每张图像均在 10 种不同的实验条件下进行测试。
+为确保实验刺激的标准化与普适性，从FOIQA等公开图像质量评估数据集中，选取了三十张未经失真处理的原始图像，每张图像均在 10 种不同的实验条件下进行测试。
 
 实验流程模拟了算法在实际运行中的一个完整周期，即一次主动的扫视运动及其后续的视觉处理窗口。每个试次中，受试者首先凝视屏幕中央的白色十字注视点，经过随机时间间隔后，一个高对比度红色环形目标随机出现在外围视野，以诱发受试者执行快速扫视。眼动仪在线算法实时检测到眼球稳定着陆于目标区域后，立即触发后续图像呈现。
 

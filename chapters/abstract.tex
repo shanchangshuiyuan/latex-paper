@@ -1,11 +1,10 @@
 \begin{abstract}
 
-虚拟现实（Virtual Reality, VR）技术通过模拟真实世界的视觉、听觉、触觉等多感官体验，使用户沉浸于计算机生成的虚拟三维环境中。
-随着应用场景向大规模、高保真方向发展，尤其在包含复杂骨骼动画与高频动态交互的场景中，用户对真实感与交互实时性的要求日益提升，导致动画网格复杂度显著增加，给渲染管线带来了巨大的计算与传输压力。尽管注视点渲染和细节层次（Level of Detail, LOD）技术提供了一定的优化思路，但在面对动态复杂场景时，现有方法仍存在显著不足：
-一方面，传统注视点渲染方法往往忽略人眼扫视过程中的时序感知特性，同时难以自适应地响应亮度、色彩、刺激面积与实时眼动状态等多维视觉参数的变化，导致渲染资源分配不够精准，存在显著的计算冗余。
-另一方面，传统LOD方法主要面向静态网格设计，未能充分考虑动画序列中顶点的时序特征，在处理动画网格时易引发运动失真，同时离散的LOD层级难以匹配由注视点引导的、连续变化的视觉重要性梯度，容易在注视焦点区域出现细节不足或在外围区域产生渲染冗余，造成视觉突变与计算资源分配失衡。
+虚拟现实（Virtual Reality, VR）技术通过模拟真实世界的多感官体验，使用户沉浸于计算机生成的三维环境中。随着应用场景向大规模、高保真方向发展，尤其在包含复杂骨骼动画与高频动态交互的场景中，动画网格的复杂度显著提升，给渲染管线带来了巨大的计算与传输压力。尽管注视点渲染和细节层次（Level of Detail, LOD）技术提供了一定的优化思路，但在动态复杂场景下现有方法仍存在显著不足：
+一方面，传统注视点渲染方法往往忽略人眼扫视过程中的时序感知特性，同时难以根据亮度、色彩、刺激面积与实时眼动状态等多维视觉信息动态调整资源分配，导致产生显著的计算冗余。
+另一方面，传统LOD方法多针对静态网格设计，未能充分利用动画序列中的时序特征，在处理动画网格时易引发运动失真，同时离散的LOD层级难以匹配由注视点引导、连续变化的视觉重要性梯度，容易在注视焦点区域出现细节不足或在外围区域产生渲染冗余，导致视觉突变与计算资源分配失衡。
 
-为此，本文聚焦于人类视觉系统的时空感知特性，提出面向虚拟现实动画网格的时空感知注视点渲染技术，通过有效利用扫视过程中的时序感知冗余与动画网格的时空相关性，在保证视觉感知质量的前提下显著提升渲染性能。具体研究内容如下：
+为此，本文聚集于人类视觉系统的时空感知特性，提出面向虚拟现实动画网格的时空感知注视点渲染技术，通过利用人眼扫视过程中的时序感知冗余与动画网格的时空相关性，在保证视觉感知质量的前提下显著提升渲染性能。具体研究内容如下：
 
 （1）针对传统注视点渲染方法存在的多维感知失配与时序感知冗余问题，提出融合扫视时序特征的多维感知注视点渲染方法。通过构建融合扫视时序特征的多维视觉感知模型castleCSF-TS，建立眼动状态与视觉感知阈值的映射关系，并以此驱动渲染分辨率在时空域上进行自适应调整，实现渲染负载与瞬时视觉感知能力的精准对齐。实验结果表明，相较于运动感知注视点渲染方法，本文方法将平均帧率提升9.1\%，GPU平均利用率降低7\%，且结构相似性维持在0.95以上，有效解决了传统注视点渲染方法存在的多维感知失配与时序感知冗余问题，在提升渲染性能的同时确保了视觉感知的无损性。
 
@@ -19,9 +18,8 @@
 \keywords{虚拟现实，注视点渲染，视觉感知模型，动画网格，细节层次技术}
 \end{abstract}
 \begin{englishabstract}
-Virtual Reality (VR) technology immerses users in computer-generated three-dimensional environments by simulating multi-sensory experiences, including vision, audition, and touch. As application scenarios evolve toward large-scale and high-fidelity representations, particularly in scenes involving complex skeletal animations and high-frequency dynamic interactions, users' demands for realism and real-time interaction are increasingly heightened. This leads to a significant increase in the complexity of animated meshes, imposing immense computational and transmission pressure on the rendering pipeline. Although foveated rendering and Level of Detail (LOD) technologies offer certain optimization insights, existing methods still exhibit significant deficiencies when dealing with dynamic and complex scenes:
-On the one hand, traditional foveated rendering methods often ignore the temporal perceptual characteristics during human saccadic eye movements. Moreover, they struggle to adaptively respond to the variations of multi-dimensional visual parameters, such as luminance, color, stimulus area, and real-time eye movement states. This results in the imprecise allocation of rendering resources and significant computational redundancy.
-On the other hand, traditional LOD methods are primarily designed for static meshes and fail to fully consider the temporal features of vertices in animation sequences, which easily induces motion distortion when processing animated meshes. Meanwhile, discrete LOD levels struggle to match the continuously varying visual importance gradient guided by the gaze point. This is prone to cause insufficient details in the focal region or rendering redundancy in the peripheral regions, leading to visual popping and an imbalanced allocation of computational resources.
+Virtual Reality (VR) technology immerses users in computer-generated three-dimensional environments by simulating multi-sensory experiences of the real world. As application scenarios evolve towards large-scale, high-fidelity directions, particularly in scenes involving complex skeletal animations and high-frequency dynamic interactions, the complexity of animated meshes increases significantly, imposing substantial computational and transmission pressures on the rendering pipeline. Although foveated rendering and Level of Detail (LOD) techniques offer certain optimization strategies, existing methods exhibit notable shortcomings in complex dynamic scenes.
+On one hand, traditional foveated rendering methods often overlook the temporal perceptual characteristics during human saccades and fail to dynamically adjust resource allocation based on multi-dimensional visual information such as luminance, color, stimulus area, and real-time eye movement states, leading to significant computational redundancy. On the other hand, conventional LOD methods are primarily designed for static meshes and inadequately leverage the temporal features inherent in animation sequences. This inadequacy can easily induce motion distortion when processing animated meshes. Furthermore, discrete LOD levels struggle to align with the continuously varying gradient of visual importance dictated by gaze, potentially resulting in insufficient detail within the foveal region or rendering redundancy in the periphery, causing visual artifacts and imbalanced computational resource distribution.
 \\~\\
 Therefore, focusing on the spatiotemporal perceptual characteristics of the human visual system, this thesis proposes a spatiotemporal-aware foveated rendering technology for VR animated meshes. By effectively utilizing the temporal perceptual redundancy during saccades and the spatiotemporal correlation of animated meshes, the proposed method significantly improves rendering performance while ensuring visual perceptual quality. The specific research contents are as follows:
 \\~\\

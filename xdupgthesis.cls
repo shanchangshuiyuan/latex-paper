@@ -1007,7 +1007,7 @@ By \par%
       \XDU@make@title%
       \XDU@make@titleenglish%
     \fi
-    \XDU@make@statementandcopyright%
+    % \XDU@make@statementandcopyright%
   \fi
   \frontmatter\pagenumbering{Roman}%
   \setlength{\baselineskip}{20pt}

@@ -449,7 +449,7 @@ $\Delta T$ 设定为 50, 100, 150, 200, 300, 400, 500 ms 七个水平，覆盖�
 算法需建立一个分辨率映射函数，将当前时序窗口内的视觉状态转化为具体的渲染分辨率缩放因子，实现从当前生理状态到最优渲染分辨率的量化映射。
 具体过程如下：
 
-首先，castleCSF-TS模型通过综合考量 DKL 三通道的感知对比能量，输出整体对比敏感度 \(S_{total}(\rho, \omega, Y, a, e, t, s)\)，该值反映了人眼在特定动态条件下的最小感知差异，为了将其应用于渲染控制，引入感知临界临界频率 \(\rho_{percept}(t, s)\) 的概念，
+首先，castleCSF-TS模型通过综合考量 DKL 三通道的感知对比能量，输出整体对比敏感度 \(S_{total}(\rho, c, \omega, Y, a, e, t, s)\)，该值反映了人眼在特定动态条件下的最小感知差异，为了将其应用于渲染控制，引入感知临界频率 \(\rho_{percept}(t, s)\) 的概念，
 定义为在当前眼动状态 \(s\) 和扫视后时间 \(t\) 下，人眼在中央凹区域所能分辨的最高空间频率。
 设定当前渲染场景设定当前渲染场景的极限对比度为 $C_{max}$，感知临界频率 $\rho_{percept}$ 必须满足以下隐函数方程：
 \begin{equation}
@@ -554,7 +554,7 @@ K(e, t, s) = \max \left( k_{min}, \, \min \left( 1.0, \, \frac{k(t) \cdot S_{tot
     环境上下文 $C = \{\rho, \omega, Y, a, e, P_{px}, f_{nyquist}\}$
 \Ensure 渲染图像 $I_{render}$
 \Function{perceptualAdaptiveRendering}{$s, t, C $}
-    \State  //初始化
+    \State  //  初始化
     \State initializeRenderingContext($s, t, C $)
     \State $\tilde{k}(t)_{prev} \gets 1.0$
     \State //   每帧更新

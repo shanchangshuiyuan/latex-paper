@@ -690,9 +690,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）改善了关节处的网格密度，但在
 
 
 
-
-
-（2）动画网格简化算法权重参数消融实验
+（2）时空运动特征驱动的动画网格层次简化算法权重参数消融实验
 
 针对上述 STMF-DS 算法中多个核心权重参数存在的经验化选取问题，本节设计了一项综合消融实验。该实验同时考量了两大类参数：一是公式 \ref{eq:importance} 中的时空运动特征重要性分量权重 $\omega_M, \omega_G, \omega_J$，用于调节动态形变、静态几何与骨骼蒙皮的内部比例；二是公式 \ref{eq:collapse_cost} 与公式 \ref{eq:final_cost} 中的折叠代价调控因子 $\lambda, \gamma$，用于控制重要性权重与时序一致性约束在全局代价函数中的惩罚力度。实验旨在探究不同参数组合策略对几何特征保持指标 $d_{H_{dyn}}$ 与时序稳定性指标 STED 的综合影响。测试基准统一采用 Galloping Horse 数据集 20\% 的目标简化率，具体配置与测试结果如表 \ref{tab:ablation_combined} 所示。
 
@@ -706,7 +704,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）改善了关节处的网格密度，但在
 >{\centering\arraybackslash}m{0.28\textwidth}
 >{\centering\arraybackslash}m{0.27\textwidth}}
 \toprule
-\textbf{参数配置组合} & \textbf{$d_{H_{dyn}}$ / mm } & \textbf{STED / $10^{-3} $} \\
+\textbf{参数配置组合} & $d_{H_{dyn}}$ / mm  & STED / $10^{-3} $ \\
 \midrule
 $\lambda=0, \gamma=0, \omega=\{0.33, 0.33, 0.33\}$ & 12.63 & 25.62 \\
 \midrule

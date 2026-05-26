@@ -544,136 +544,112 @@ K(e, t, s) = \max \left( k_{min}, \, \min \left( 1.0, \, \frac{k(t) \cdot S_{tot
 （a）初始化阶段：绑定眼动追踪设备，加载castleCSF-TS感知模型参数，设定渲染目标纹理与多分辨率区域划分策略。
 
 （b）每帧更新循环：首先获取当前眼动数据流（注视点坐标、眼球角速度），运行眼动事件检测算法以确定当前眼动状态 \(s\) 与扫视后时间 \(t\)；随后调用castleCSF-TS模型计算当前感知临界空间频率 \(\rho_{\text{percept}}(t,s)\)，并根据分辨率映射函数计算中央凹分辨率缩放因子 \(k(t)\)，应用时序平滑滤波以确保视觉连续性；接着根据动态分辨率场函数 \(K(e,t,s)\) 更新各同心环带区域的渲染分辨率设置；最后执行多通道渲染，分别以不同分辨率绘制各区域，并组合成最终图像。
-\begin{algorithm}[htbp]
-\caption{感知自适应的动态分辨率渲染算法}
-\label{alg:adaptive_resolution_render}
-\begin{algorithmic}[1]
-\Require     
-    眼动状态 $s \in \{\text{SACCADING, POST-SACCADIC, FIXATING} \}$; \\
-    扫视着陆流逝时间 $t$; \\
-    环境上下文 $C = \{\rho, \omega, Y, a, e, P_{px}, f_{nyquist}\}$
-\Ensure 渲染图像 $I_{render}$
-\Function{perceptualAdaptiveRendering}{$s, t, C $}
-    \State  //  初始化
-    \State initializeRenderingContext($s, t, C $)
-    \State $\tilde{k}(t)_{prev} \gets 1.0$
-    \State //   每帧更新
-    \While{rendering}
-        \State //   step 1: 获取实时眼动数据与事件检测
-        \State $g, v \gets \text{retrieveTrackingData}()$
-        \State $s, t_{land} \gets \text{detectMovementEvent}(v)$
-        \State $t \gets \text{updateElapsedTime}(t_{land})$
-        
-        \State //   step 2: 计算感知临界频率
-        \State $\rho_{percept} \gets \text{evaluateCriticalFrequency}(s, t, C)$
-        
-        \State //   step 3: 计算分辨率缩放因子
-        \State $k(t)$ $\gets$ computeScaleFactor($\rho_{\text{percept}}$, $f_{nyquist}$)
-        
-        % \If{$s = \text{POST-SACCADE}$}
-        %     \State //   step 4: 时序平滑滤波
-        %     \State $k_{smooth} \gets \text{applyTemporalFilter}(k_{raw})$
-        %     \State //   step 5: 动态计算中央凹半径
-        %     \State $r_{fovea} \gets \text{computeDynamicRadius}(\rho_{th})$
-        % \Else
-        %     \State $k_{smooth} \gets k_{raw}$
-        %     \State $r_{fovea} \leftarrow r_{base}$
-        % \EndIf
-
-        \If{$s = \text{POST-SACCADIC}$}
-            \State //   step 4: 时序平滑滤波
-            \State $\tilde{k}(t) \gets \alpha \cdot k(t) + (1-\alpha) \cdot \tilde{k}(t)_{prev}$
-            \State //   step 5: 动态计算中央凹半径
-            \State $r_{fovea} \gets \text{computeDynamicRadius}(\rho_{percept})$
-        \Else
-            \State $\tilde{k}(t) \gets k(t)$
-            \State $r_{fovea} \gets r_{base}$
-        \EndIf
-
-        \State //   step 6: 构建动态分辨率场
-        \State $updateDynamicResolutionField(g, \tilde{k}(t))$
-
-        \State //  step 7: 执行多分辨率渲染
-        \State $I_{render} \gets \text{ExecuteMultiResRendering}(g, r_{fovea})$
-        
-        \State //   step 8: 状态重置检测
-        \If{$s = \text{FIXATING}$ and $\tilde{k}(t) \geq 1.0$}
-            \State resetTimers()
-        \EndIf
-    \EndWhile
-    
-    \State \Return $I_{render}$
-\EndFunction
-\end{algorithmic}
-\end{algorithm}
-
-\label{sec:experiment-environment}
-
-（c）状态重置：当系统进入稳定注视期后，重置计时器与状态变量，等待下一次扫视事件触发新一轮优化窗口。
-
 % \begin{algorithm}[htbp]
 % \caption{感知自适应的动态分辨率渲染算法}
 % \label{alg:adaptive_resolution_render}
 % \begin{algorithmic}[1]
-% \Require 眼动状态 $s$，扫视后时间 $t$，场景亮度 $Y$，空间频率 $\rho_{\text{scene}}$，设备参数 $P_{\text{px}}$, $f_{\text{refresh}}$
-% \Ensure 渲染图像 $\text{renderedImage}$
-% \Function{perceptualAdaptiveRendering}{$s, t, Y, \rho_{\text{scene}}, P_{\text{px}}, f_{\text{refresh}}$}
-%     \State //   初始化
-%     \State loadCSFParams()
-%     \State initRenderingTarget()
-%     \State initFovealRegions()
-    
+% \Require     
+%     眼动状态 $s \in \{\text{SACCADING, POST-SACCADIC, FIXATING} \}$; \\
+%     扫视着陆流逝时间 $t$; \\
+%     环境上下文 $C = \{\rho, \omega, Y, a, e, P_{px}, f_{nyquist}\}$
+% \Ensure 渲染图像 $I_{render}$
+% \Function{perceptualAdaptiveRendering}{$s, t, C $}
+%     \State  //  初始化
+%     \State initializeRenderingContext($s, t, C $)
+%     \State $\tilde{k}(t)_{prev} \gets 1.0$
 %     \State //   每帧更新
 %     \While{rendering}
-%         \State //   step 1: 获取眼动数据与事件
-%         \State gazePoint, eyeVelocity $\gets$ getEyeTrackingData()
-%         \State $s$, $t_{\text{land}}$ $\gets$ detectSaccadeEvent(eyeVelocity)
-%         \State $t$ $\gets$ getTimeSinceLanding($t_{\text{land}}$)
+%         \State //   step 1: 获取实时眼动数据与事件检测
+%         \State $g, v \gets \text{retrieveTrackingData}()$
+%         \State $s, t_{land} \gets \text{detectMovementEvent}(v)$
+%         \State $t \gets \text{updateElapsedTime}(t_{land})$
         
 %         \State //   step 2: 计算感知临界频率
-%         \State $\rho_{\text{percept}}$ $\gets$ computePerceptualCriticalFrequency($s$, $t$, $Y$, $\rho_{\text{scene}}$)
+%         \State $\rho_{percept} \gets \text{evaluateCriticalFrequency}(s, t, C)$
         
-%         \State //   step 3: 计算分辨率缩放因子（中央凹）
-%         \State $k_{\text{center}}$ $\gets$ computeScaleFactor($\rho_{\text{percept}}$, $P_{\text{px}}$)
+%         \State //   step 3: 计算分辨率缩放因子
+%         \State $k(t)$ $\gets$ computeScaleFactor($\rho_{\text{percept}}$, $f_{nyquist}$)
         
-%         \State //   step 4: 时序平滑滤波
-%         \If{$s = \text{POST\_SACCADIC}$}
-%             \State $k_{\text{smooth}}$ $\gets$ applyTemporalSmoothing($k_{\text{center}}$)
-%         \Else
-%             \State $k_{\text{smooth}}$ $\gets$ $k_{\text{center}}$
-%         \EndIf
+%         % \If{$s = \text{POST-SACCADE}$}
+%         %     \State //   step 4: 时序平滑滤波
+%         %     \State $k_{smooth} \gets \text{applyTemporalFilter}(k_{raw})$
+%         %     \State //   step 5: 动态计算中央凹半径
+%         %     \State $r_{fovea} \gets \text{computeDynamicRadius}(\rho_{th})$
+%         % \Else
+%         %     \State $k_{smooth} \gets k_{raw}$
+%         %     \State $r_{fovea} \leftarrow r_{base}$
+%         % \EndIf
 
-%         \State $\text{prev}_k$ $\gets$ $k_{\text{smooth}}$
-        
-%             \State //   step 5: 动态定义中央凹半径
-%         \If{$s = \text{POST\_SACCADIC}$}
-%             \State $r_{\text{fovea}}$ $\gets$ computeDynamicFoveaRadius($\rho_{\text{percept}}$)
-%             \Else
-%             \State $r_{\text{fovea}}$ $\gets$ $r_{\text{default}}$
+%         \If{$s = \text{POST-SACCADIC}$}
+%             \State //   step 4: 时序平滑滤波
+%             \State $\tilde{k}(t) \gets \alpha \cdot k(t) + (1-\alpha) \cdot \tilde{k}(t)_{prev}$
+%             \State //   step 5: 动态计算中央凹半径
+%             \State $r_{fovea} \gets \text{computeDynamicRadius}(\rho_{percept})$
+%         \Else
+%             \State $\tilde{k}(t) \gets k(t)$
+%             \State $r_{fovea} \gets r_{base}$
 %         \EndIf
 
 %         \State //   step 6: 构建动态分辨率场
-%         \For{each region in viewport}
-%             \State ecc $\gets$ computeEccentricity(region.center, gazePoint)
-%             \State $k_{\text{region}}$ $\gets$ computeRegionalScale($k_{\text{smooth}}$, ecc)
-%             \State setViewportResolution(region, $k_{\text{region}}$)
-%         \EndFor
+%         \State $updateDynamicResolutionField(g, \tilde{k}(t))$
 
 %         \State //  step 7: 执行多分辨率渲染
-%         \State renderedImage $\gets$ renderMultiResolution(gazePoint, $r_{\text{fovea}}$)
+%         \State $I_{render} \gets \text{ExecuteMultiResRendering}(g, r_{fovea})$
         
 %         \State //   step 8: 状态重置检测
-%         \If{$s = \text{FIXATING}$ and $k_{\text{smooth}} \geq 0.98$}
+%         \If{$s = \text{FIXATING}$ and $\tilde{k}(t) \geq 1.0$}
 %             \State resetTimers()
 %         \EndIf
 %     \EndWhile
     
-%     \State \Return renderedImage
+%     \State \Return $I_{render}$
 % \EndFunction
 % \end{algorithmic}
 % \end{algorithm}
 
+% \label{sec:experiment-environment}
 
+
+
+（c）状态重置：当系统进入稳定注视期后，重置计时器与状态变量，等待下一次扫视事件触发新一轮优化窗口。
+
+\begin{algorithm}[htbp]
+\caption{感知自适应的动态分辨率渲染算法}
+\label{alg:adaptive_resolution_render}
+\textbf{输入}: 眼动状态 $s \in \{\text{SACCADING, POST-SACCADIC, FIXATING}\}$, \\
+\hspace*{2.4em} 扫视着陆流逝时间 $t$, \\
+\hspace*{2.4em} 环境上下文 $C = \{\rho, \omega, Y, a, e, P_{px}, f_{nyquist}\}$ \\
+\textbf{输出}: 渲染图像 $I_{render}$
+\begin{algorithmic}[1]
+\State \textbf{初始化}: $\tilde{k}_{prev} \gets 1.0$, $r_{base} \gets$ default fovea radius
+\While{rendering is active}
+    \State $g, v \gets \text{RetrieveTrackingData}()$ \Comment{获取眼动注视点与角速度}
+    \State $s, t_{land} \gets \text{DetectMovementEvent}(v)$ \Comment{事件检测与状态更新}
+    \State $t \gets t_{current} - t_{land}$
+    
+    \State $\rho_{percept} \gets \text{EvaluateCriticalFrequency}(s, t, C)$ \Comment{计算临界频率}
+    \State $k(t) \gets \min \left( 1.0, \, \eta \cdot \frac{\rho_{percept}}{f_{nyquist}} \right)$ \Comment{计算当前理论缩放因子}
+    
+    \If{$s == \text{POST-SACCADIC}$}
+        \State $\alpha \gets \min\left(0.5, \frac{\Delta t}{0.1}\right)$ \Comment{计算自适应平滑系数}
+        \State $\tilde{k}(t) \gets \alpha \cdot k(t) + (1-\alpha) \cdot \tilde{k}_{prev}$ \Comment{一阶时序平滑滤波}
+        \State $r_{fovea} \gets \theta_{max} \cdot \frac{\rho_{percept}}{\rho_{max}}$ \Comment{动态调节中央凹半径}
+    \Else
+        \State $\tilde{k}(t) \gets k(t)$
+        \State $r_{fovea} \gets r_{base}$
+    \EndIf
+    \State $\tilde{k}_{prev} \gets \tilde{k}(t)$ \Comment{更新状态}
+    
+    \State $\text{UpdateDynamicResolutionField}(g, \tilde{k}(t))$ \Comment{构建多分辨率场}
+    \State $I_{render} \gets \text{ExecuteMultiResRendering}(g, r_{fovea})$ \Comment{执行渲染管线}
+    
+    \If{$s == \text{FIXATING}$ \textbf{and} $\tilde{k}(t) \geq 1.0$}
+        \State $\text{ResetTimers}()$ \Comment{完全恢复，重置优化窗口}
+    \EndIf
+\EndWhile
+\State \Return $I_{render}$
+\end{algorithmic}
+\end{algorithm}
 
 
 本节详细阐述了感知自适应的动态分辨率渲染算法，该算法突破了传统注视点渲染仅利用空间非均匀性的局限，引入时序优化窗口概念，并依托于 castleCSF-TS 多维感知模型，将渲染计算资源的消耗曲线与人类视觉系统的瞬时感知能力曲线进行精细对齐，为在高性能需求与有限计算资源的矛盾中提供了一条坚实且可工程化的技术路径，使得在保持不可察觉的视觉质量损失的前提下，显著提升渲染效率成为可能。后续章节将通过系统的实验验证，定量评估该算法在渲染效率提升与视觉质量保持两方面的综合性能。
@@ -721,7 +697,7 @@ K(e, t, s) = \max \left( k_{min}, \, \min \left( 1.0, \, \frac{k(t) \cdot S_{tot
 \subsection{评价指标}
 （1）融合扫视时序特征的多维视觉感知模型 castleCSF-TS
 
-本文采用以分贝（dB）为单位的均方根误差（RMSE）作为衡量模型预测值与心理物理学实验实测值之间差异的核心指标。
+本文采用以分贝（decibel, dB）为单位的均方根误差（Root Mean Square Error, RMSE）作为衡量模型预测值与心理物理学实验实测值之间差异的核心指标。
 由于不同来源的数据集在实验范式、设备校准、观察者群体等方面存在系统性差异，导致其报告的时间敏感度阈值存在整体偏移。为消除这些非感知本质的系统偏差，使模型专注于学习感知阈值随参数变化的相对趋势，在误差函数中为每个数据集引入了一个可学习的数据集调整因子。该因子允许模型在对数敏感度轴上对每个数据集的全部测量值进行一个整体的垂直平移校正\cite{1-2-9}。
 
 具体而言：设 $D$ 为参与评估的数据集总数，$N_d$ 为第 $d$ 个数据集中的样本点数量。
@@ -738,7 +714,7 @@ E = 20 \sqrt{ \frac{1}{N} \sum_{d=1}^{D} \sum_{i=1}^{N_d} \left( \log_{10} S_{i,
 \end{equation}
 其中，$N = \sum_{d=1}^{D} N_d$ 为所有数据点的总和。在该评价体系下，$E$ 值越小，表明模型对多维视觉感知数据的拟合程度越高。
 
-为进一步量化模型在拟合优度与模型复杂度之间的权衡，本文采用赤池信息量准则（AIC）进行评估，AIC在统计学中用于比较不同模型的相对质量，它既奖励模型对数据的拟合精度，又惩罚引入过多参数所带来的过拟合风险。其计算公式为：
+为进一步量化模型在拟合优度与模型复杂度之间的权衡，本文采用赤池信息量准则（Akaike Information Criterion, AIC）进行评估，AIC在统计学中用于比较不同模型的相对质量，它既奖励模型对数据的拟合精度，又惩罚引入过多参数所带来的过拟合风险。其计算公式为：
 \begin{equation}
 \label{eq:aic}
 \text{AIC} = n \ln\left( \frac{SSE}{n} \right) + 2k
@@ -758,11 +734,11 @@ AIC值越小，表明模型在简洁性与准确性上的综合性能越优。
 
 本文采用平均帧率、GPU平均利用率、有效计算节省比和结构相似性作为评价指标，从性能与图像质量两个维度对感知自适应的动态分辨率渲染算法进行综合评估。
 
-帧率（FPS）是衡量注视点渲染系统性能的核心指标，表示每秒生成图像帧的数量。FPS直接反映了渲染系统的计算效率和满足实时性需求的能力。在虚拟现实场景中，较高的FPS是保证用户获得流畅交互体验的重要标准。
+帧率（Frames Per Second, FPS）是衡量注视点渲染系统性能的核心指标，表示每秒生成图像帧的数量。FPS直接反映了渲染系统的计算效率和满足实时性需求的能力。在虚拟现实场景中，较高的FPS是保证用户获得流畅交互体验的重要标准。
 
 GPU平均利用率从硬件资源分配的角度揭示了算法的计算负载特性。通过实时监测GPU着色器核心的活动状态与负载分布，可精确分析算法对图形处理单元的计算需求变化，直观展示算法在保持视觉质量的同时实现的计算资源节约。
 
-有效计算节省比（ECSR）从数据处理的层面量化了算法的优化效果，该指标的定义如下：
+有效计算节省比（Effective Computation Saving Ratio, ECSR）从数据处理的层面量化了算法的优化效果，该指标的定义如下：
 设全分辨率渲染的每帧像素数据量为 \(P_{\text{full}}\)，在时间段 \(T\) 内的总帧数为 \(N\)，则全分辨率渲染的理论总数据量为：
 \begin{equation}
 D_{\text{full}} = \sum_{t=1}^{N} P_{\text{full}} = N \cdot P_{\text{full}}
@@ -780,7 +756,7 @@ D_{\text{actual}} = \sum_{t=1}^{N} P_{\text{actual}}(t)
 \end{equation}
 该指标能够准确反映算法在时空联合优化框架下实现的整体计算冗余消除效率。
 
-结构相似性（SSIM）客观量化了动态分辨率渲染图像相对于全分辨率原图的视觉质量损失，与传统的均方误差（MSE）不同，SSIM 更符合人类视觉系统提取结构信息的特性，它从亮度、对比度和结构三个维度衡量参考图像 $x$ 与失真图像 $y$ 之间的相似度：
+结构相似性（Structural Similarity Index, SSIM）客观量化了动态分辨率渲染图像相对于全分辨率原图的视觉质量损失，与传统的均方误差（Mean Square Error, MSE）不同，SSIM 更符合人类视觉系统提取结构信息的特性，它从亮度、对比度和结构三个维度衡量参考图像 $x$ 与失真图像 $y$ 之间的相似度：
 \begin{equation}
 \text{SSIM}(x, y) = \frac{(2\mu_x \mu_y + C_1)(2\sigma_{xy} + C_2)}{(\mu_x^2 + \mu_y^2 + C_1)(\sigma_x^2 + \sigma_y^2 + C_2)}
 \label{eq:ssim}
@@ -804,7 +780,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
 本文采用五折交叉验证作为标准评估策略：将整合后的多维参数点集随机划分为五个互斥子集；在每轮实验中，轮流选取一个子集作为测试集，其余四个子集作为训练集用于优化模型参数。
 该过程循环五次，确保每个数据点均参与测试，最终以五次测试误差的均值及标准差作为性能指标。此评估方案确保了测试数据点的参数分布处于训练空间的包络范围内，从而有效验证模型在高维参数空间内的插值与泛化能力，而非对特定数据切片的过拟合。
 
-实验选取了四个具有代表性的经典及前沿模型作为基准对比对象：Barten's CSF\cite{1-2-1-2}、Chromatic pyramid\cite{1-2-9}、stelaCSF\cite{1-2-8}和castleCSF\cite{1-2-9}，所有模型均基于相同的五折交叉验证策略在整合数据集上进行测试，各模型的整体预测误差如表\ref{tab:overall_performance}所示。对比其他四种感知模型，本方法提出的castleCSF-TS 模型在拟合能力与泛化性能上均有提升，其平均测试误差从 $3.64~\text{dB}$ 降至 $3.37~\text{dB}$，误差降幅约 $7.4\%$。
+实验选取了四个具有代表性的经典及前沿模型作为基准对比对象：Barten's CSF\cite{1-2-1-2}、Chromatic pyramid\cite{1-2-2-1}、stelaCSF\cite{1-2-8}和castleCSF\cite{1-2-9}，所有模型均基于相同的五折交叉验证策略在整合数据集上进行测试，各模型的整体预测误差如表\ref{tab:overall_performance}所示。对比其他四种感知模型，本方法提出的castleCSF-TS 模型在拟合能力与泛化性能上均有提升，其平均测试误差从 $3.64~\text{dB}$ 降至 $3.37~\text{dB}$，误差降幅约 $7.4\%$。
 
 
 \begin{table}[htbp]
@@ -820,7 +796,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
         \textbf{感知模型} & \textbf{平均训练误差} & \textbf{平均测试误差} \\
         \midrule
         original Barten's CSF (2003) & $4.43 \pm 0.07$ & $4.51 \pm 0.31$ \\
-        Chromatic pyramid (2021) & $5.12 \pm 0.15$ & $5.30 \pm 0.26$ \\
+        Chromatic pyramid (2016) & $5.12 \pm 0.15$ & $5.30 \pm 0.26$ \\
         stelaCSF (2022) & $4.18 \pm 0.09$ & $4.36 \pm 0.41$ \\
         castleCSF (2024) & $3.43 \pm 0.08$ & $3.64 \pm 0.23$ \\
         \textbf{castleCSF-TS (ours)} & $\mathbf{3.14 \pm 0.12}$ & $\mathbf{3.37 \pm 0.19}$ \\
@@ -848,7 +824,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
         \multirow{3}{*}{\textbf{测试参数维度}} & 
         \multicolumn{5}{c}{\textbf{各感知模型预测误差（均值±标准差）}} \\
         & \textbf{Barten's CSF} & \textbf{stelaCSF} & \textbf{Chromatic} & \textbf{castleCSF} & \textbf{\makecell{castleCSF-TS}} \\
-        & \textbf{(2003)} & \textbf{(2022)} & \textbf{(2021)} & \textbf{(2024)} & \textbf{(ours)} \\
+        & \textbf{(2003)} & \textbf{(2022)} & \textbf{(2016)} & \textbf{(2024)} & \textbf{(ours)} \\
         \midrule
         $\rho$, $Y$, $a$ & $3.49 \pm 0.45$ & $2.78 \pm 0.49$ & $\times$ & $\mathbf{2.67 \pm 0.31}$ & $2.69 \pm 0.30$ \\
         $\rho$, $Y$, $a$, $\omega$ & $3.89 \pm 0.36$ & $4.37 \pm 0.39$ & $\times$ & $3.53 \pm 0.31$ & $\mathbf{3.45 \pm 0.34}$ \\
@@ -864,7 +840,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
     \end{tabularx}
 \end{table}
 
-本文提出的 castleCSF-TS 模型在 castleCSF 模型基础上引入扫视时序调制因子，实现了感知优化扩展。使用 AIC 与 F 检验来测试在$\alpha=0.05$ 水平上拟合误差的差异统计学意义。模型对比数据如表 \ref{tab:3.3} 所示。在统计性能上，castleCSF-TS 模型的 F 检验结果表明改进具有统计显著性，AIC 值降至$-2795.1$，比原模型降低约 33.8，表明在增加 2 个参数的情况下实现了更优的复杂度和精度平衡。
+本文提出的 castleCSF-TS 模型在 castleCSF 模型基础上引入扫视时序调制因子，实现了感知优化扩展。使用 AIC 与 F 检验来测试在$\alpha=0.05$ 水平上拟合误差的差异统计学意义。模型对比数据如表 \ref{tab:3.3} 所示。在统计性能上，castleCSF-TS 模型的 F 检验结果表明改进具有统计显著性，AIC 值降至$-2795.1$，比原模型降低约 33.2，表明在增加 2 个参数的情况下实现了更优的复杂度和精度平衡。
 \begin{table}[htbp]
     \centering
     \caption{感知模型统计性能对比}
@@ -881,7 +857,7 @@ SSIM数值越接近 1 表示渲染图像的保真度越高，视觉质量损失�
         \textbf{感知模型} & \textbf{自由参数个数} & \textbf{SSE} & \textbf{自由度} & \textbf{F-test} & \textbf{AIC} \\
         \midrule
         original Barten's CSF (2003) & 13 & 38.302 & 766 & 17.592 & -2317.6 \\
-        Chromatic pyramid (2021) & 4 & 54.012 & 775 & 16.378 & -2048.4 \\
+        Chromatic pyramid (2016) & 4 & 54.012 & 775 & 16.378 & -2048.4 \\
         stelaCSF (2022) & 21 & 35.152 & 758 & 17.631 & -2374.5 \\
         castleCSF (2024) & 53 & 19.517 & 726 & 18.033 & -2761.9 \\
         \textbf{castleCSF-TS (ours)} & 55 & 18.543 & 724 & \textbf{18.152} & \textbf{-2795.1} \\
@@ -1076,6 +1052,12 @@ GPU平均利用率 (\%) & $92 \pm 3$ & $76 \pm 3$ & $68 \pm 3$ & $\mathbf{61 \pm
 
 为进一步直观比较各渲染模式在动态交互中的实际表现，图 \ref{fig:comparison_final} 展示了用户从屏幕中心快速扫视至右侧边缘时不同模式的渲染结果。全分辨率基准（图 \ref{fig:a}）未采用注视点渲染技术，系统被迫对全屏幕像素执行无差别的均匀高负载计算，导致大量算力被消耗在人眼非关注区域及视觉盲区，造成了严重的计算资源浪费；固定注视点渲染FFR（图 \ref{fig:b}） 因高分辨率区域固定于屏幕中心，用户当前注视的右侧边缘出现了严重模糊与马赛克现象；运动感知注视点渲染LaFR（图 \ref{fig:c}）虽能跟随注视点，但在扫视窗口及恢复窗口初期仍维持全分辨率渲染，存在计算冗余。相比之下，本文方法（图 \ref{fig:d}-图 \ref{fig:h} ）实现了时空联合优化：扫视抑制期（图 \ref{fig:d}）主动大幅降低清晰度以换取极致的渲染性能，随着视觉敏感度逐渐恢复，渲染质量在阶段自适应地平滑回升，直至稳定注视期（图 \ref{fig:h}）恢复至原生分辨率，在保障视觉体验的前提下实现了计算资源的高效利用。
 
+在主观评价分析方面，采用5点李克特量表收集了24名受试者在视觉质量、流畅度和整体体验三个维度的评分，结果如表\ref{tab:subjective_rating}所示。
+在视觉质量维度，本文方法与NFR及LaFR的评分无显著差异，表明本文方法在显著提升渲染性能的同时并未引入可察觉的视觉质量下降。
+在流畅度与整体体验维度，本文方法分别获得 $4.6$ 与 $4.7$ 的最高评分，显著优于对照组，进一步证实了该算法在提升用户体验方面的有效性。
+
+综合主客观评价结果，本文提出的感知自适应动态分辨率渲染算法在维持视觉质量的同时，显著提升了渲染性能与用户体验流畅度。实验结果表明，该算法通过精准识别扫视及恢复窗口，实现了渲染分辨率与人类视觉系统瞬时感知能力间的动态对齐，有效解决了传统注视点渲染方法在扫视过程中存在时序感知冗余导致计算资源浪费问题，为高保真动态场景下的渲染优化提供了更为高效的资源调度策略。
+
 \begin{figure}[htbp]
     \centering
     
@@ -1117,11 +1099,7 @@ GPU平均利用率 (\%) & $92 \pm 3$ & $76 \pm 3$ & $68 \pm 3$ & $\mathbf{61 \pm
     \label{fig:comparison_final}
 \end{figure}
 
-在主观评价分析方面，采用5点李克特量表收集了24名受试者在视觉质量、流畅度和整体体验三个维度的评分，结果如表\ref{tab:subjective_rating}所示。
-在视觉质量维度，本文方法与NFR及LaFR的评分无显著差异，表明本文方法在显著提升渲染性能的同时并未引入可察觉的视觉质量下降。
-在流畅度与整体体验维度，本文方法分别获得 $4.6$ 与 $4.7$ 的最高评分，显著优于对照组，进一步证实了该算法在提升用户体验方面的有效性。
 
-综合主客观评价结果，本文提出的感知自适应动态分辨率渲染算法在维持视觉质量的同时，显著提升了渲染性能与用户体验流畅度。实验结果表明，该算法通过精准识别扫视及恢复窗口，实现了渲染分辨率与人类视觉系统瞬时感知能力间的动态对齐，有效解决了传统注视点渲染方法在扫视过程中存在时序感知冗余导致计算资源浪费问题，为高保真动态场景下的渲染优化提供了更为高效的资源调度策略。
 
 \begin{table}[htbp]
 \centering
@@ -1146,4 +1124,4 @@ GPU平均利用率 (\%) & $92 \pm 3$ & $76 \pm 3$ & $68 \pm 3$ & $\mathbf{61 \pm
 
 
 \section{本章小结}
-本章针对传统注视点渲染方法存在的多维感知失配与时序感知冗余问题，从两个方面进行研究分析，提出融合扫视时序特征的多维感知注视点渲染方法，实现了在不同眼动状态下动态、平滑地调整渲染分辨率，在保证视觉质量的同时显著提升渲染效率。首先，构建融合扫视时序特征的多维视觉感知模型castleCSF-TS，通过显式引入扫视时序调制因子，综合集成色彩、刺激面积、时空频率、亮度、视网膜偏心度等多维参数，实现了对扫视后视觉敏感度动态恢复过程的精确量化；其次，提出感知自适应的动态分辨率渲染算法，通过高精度眼动事件检测界定扫视窗口与恢复窗口，并依据castleCSF-TS模型实时预测的感知临界频率，在时序优化窗口内动态映射并平滑调整中央凹及周边区域的分辨率，实现了渲染负载与瞬时视觉感知能力的精准对齐，显著降低时序计算冗余，提升渲染效率；最后，通过系统的心理物理学实验与渲染性能测试验证了本方法的可行性与有效性。
+本章针对传统注视点渲染方法存在的多维感知失配与时序感知冗余问题，从两个方面进行研究分析，提出融合扫视时序特征的多维感知注视点渲染方法，实现了在不同眼动状态下动态、平滑地调整渲染分辨率，在保证视觉质量的同时显著提升渲染效率。首先，构建融合扫视时序特征的多维视觉感知模型castleCSF-TS，通过显式引入扫视时序调制因子，综合集成色彩、刺激面积、时空频率、亮度、视网膜偏心度等多维参数，实现了对扫视后视觉敏感度动态恢复过程的精确量化；其次，提出感知自适应的动态分辨率渲染算法，通过高精度眼动事件检测界定扫视窗口与恢复窗口，并依据castleCSF-TS模型实时预测的感知临界频率，在时序优化窗口内动态映射并平滑调整中央凹及周边区域的分辨率，实现了渲染负载与瞬时视觉感知能力的精准对齐，降低时序计算冗余，提升渲染效率；最后，通过系统的心理物理学实验与渲染性能测试验证了本方法的可行性与有效性。

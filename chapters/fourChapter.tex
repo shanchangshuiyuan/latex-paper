@@ -207,53 +207,95 @@ w_j = \frac{I(v_j, t) \cdot A_j}{I(v_i, t) \cdot A_i + I(v_j, t) \cdot A_j}
 
 该算法通过将时空运动特征融入简化决策过程，有效解决了传统静态简化方法在处理动画网格时导致的运动失真问题，实现了在保持视觉关键特征和运动连贯性的同时获得更高压缩率的目标。
 
+% \begin{algorithm}[htbp]
+% \caption{时空运动特征驱动的动画网格层次简化算法}
+% \label{alg:spatiotemporal-motion-simplification}
+% \begin{algorithmic}[1]
+% \Require 动画网格 $M$，目标简化率 $R$
+% \Ensure 简化后的动画网格层次 $\{M_i\}$
+
+% \Function{\textbf{STMF-DS}}{$M$, $R$}
+%     \State // Step 1: 计算顶点时空运动特征重要性
+
+%     \For{\textbf{each} vertex $v$ \textbf{in} $M$}
+%         \State $I(v) \gets \text{computeVertexImportance}(v)$
+%     \EndFor
+
+%     \State //Step 2: 初始化边折叠优先队列
+%     \State $Q \gets \text{emptyPriorityQueue}$
+%     \For{\textbf{each} edge $e_{ij}$ \textbf{in} $M$}
+%         \State $C \gets \text{computeEdgeCollapseCost}(e_{ij})$
+%         \State $Q.\text{insert}(e_{ij}, C)$
+%     \EndFor
+
+%    \State //Step 3: 迭代边折叠
+%     \While{$\text{simplificationRatio}(M) < R$ \textbf{and} $\neg Q.\text{isEmpty}()$}
+%         \State $e_{ij} \gets Q.\text{extractMin}()$
+%         \If{$\text{motionDistortion}(e_{ij}) > \text{threshold}$}
+%             \State \textbf{continue}
+%         \EndIf
+        
+%         \State $v_{\text{new}} \gets \text{collapseEdge}(e_{ij})$
+%         \State $I(v_{\text{new}}) \gets \text{updateVertexImportance}(v_i, v_j)$
+%         \State $w_{\text{new}} \gets \text{updateBoneWeights}(w_i, w_j)$
+        
+%         \For{\textbf{each} edge $e$ \textbf{adjacent to} $v_{\text{new}}$}
+%             \State $\text{recomputeEdgeCost}(e)$
+%             \State $Q.\text{update}(e, \text{newCost})$
+%         \EndFor
+%     \EndWhile
+    
+%     \State //Step 4: 精简关键帧并插值
+%     \State $\text{simplifyKeyframes}()$
+%     \State $\text{interpolateKeyframes}()$
+    
+%     \State //Step 5: 优化纹理
+%     \State $\text{optimizeTexture}()$
+    
+%     \State \Return $\text{generateLODLevels}(M)$
+% \EndFunction
+% \end{algorithmic}
+% \end{algorithm}
+
 \begin{algorithm}[htbp]
 \caption{时空运动特征驱动的动画网格层次简化算法}
 \label{alg:spatiotemporal-motion-simplification}
+\textbf{输入}: 动画网格 $M$, \\
+\hspace*{2.4em} 目标简化率 $R$, \\
+\hspace*{2.4em} 运动失真阈值 $\theta_{\text{motion}}$ \\
+\textbf{输出}: 简化后的动画网格层次 $\{M_i\}$
 \begin{algorithmic}[1]
-\Require 动画网格 $M$，目标简化率 $R$
-\Ensure 简化后的动画网格层次 $\{M_i\}$
-
-\Function{\textbf{STMF-DS}}{$M$, $R$}
-    \State // Step 1: 计算顶点时空运动特征重要性
-
-    \For{\textbf{each} vertex $v$ \textbf{in} $M$}
-        \State $I(v) \gets \text{computeVertexImportance}(v)$
+    \For{\textbf{each} vertex $v \in M$}
+        \State $I(v,t) \gets \omega_M \cdot M(v,t) + \omega_G \cdot G(v) + \omega_J \cdot J(v)$ \Comment{计算时空运动特征重要性}
     \EndFor
-
-    \State //Step 2: 初始化边折叠优先队列
-    \State $Q \gets \text{emptyPriorityQueue}$
-    \For{\textbf{each} edge $e_{ij}$ \textbf{in} $M$}
-        \State $C \gets \text{computeEdgeCollapseCost}(e_{ij})$
-        \State $Q.\text{insert}(e_{ij}, C)$
+    
+    \For{\textbf{each} edge $e_{ij} \in M$}
+        \State $\text{Cost}(e_{ij}) \gets D_{ij} \cdot (1 + \lambda \cdot I_{\text{weight}}(e_{ij})) + \gamma \cdot E_{\text{temp}}(e_{ij})$ \Comment{计算综合折叠代价}
+        \State $Q.\text{insert}(e_{ij}, \text{Cost}(e_{ij}))$
     \EndFor
-
-   \State //Step 3: 迭代边折叠
-    \While{$\text{simplificationRatio}(M) < R$ \textbf{and} $\neg Q.\text{isEmpty}()$}
+    
+    \While{$\text{simplificationRatio}(M) < R$ \textbf{and} $Q \neq \emptyset$}
         \State $e_{ij} \gets Q.\text{extractMin}()$
-        \If{$\text{motionDistortion}(e_{ij}) > \text{threshold}$}
-            \State \textbf{continue}
+        
+        \If{$\text{motionDistortion}(e_{ij}) > \theta_{\text{motion}}$}
+            \State \textbf{continue} \Comment{若运动失真越界，则拒绝该边折叠}
         \EndIf
         
-        \State $v_{\text{new}} \gets \text{collapseEdge}(e_{ij})$
-        \State $I(v_{\text{new}}) \gets \text{updateVertexImportance}(v_i, v_j)$
-        \State $w_{\text{new}} \gets \text{updateBoneWeights}(w_i, w_j)$
+        \State $v_{\text{new}} \gets \text{collapseEdge}(e_{ij})$ \Comment{执行边折叠生成新顶点}
+        
+        \State $I(v_{\text{new}}, t) \gets w_i \cdot I(v_i, t) + w_j \cdot I(v_j, t)$ \Comment{更新时空运动特征重要性}
+        \State $w_{\text{new}} \gets \frac{||w_i|| w_i + ||w_j|| w_j}{||w_i|| + ||w_j||}$ \Comment{调整蒙皮骨骼权重}
         
         \For{\textbf{each} edge $e$ \textbf{adjacent to} $v_{\text{new}}$}
-            \State $\text{recomputeEdgeCost}(e)$
-            \State $Q.\text{update}(e, \text{newCost})$
+            \State $\text{Cost}(e) \gets \text{recomputeEdgeCost}(e)$ 
+            \State $Q.\text{update}(e, \text{Cost}(e))$
         \EndFor
     \EndWhile
     
-    \State //Step 4: 精简关键帧并插值
-    \State $\text{simplifyKeyframes}()$
-    \State $\text{interpolateKeyframes}()$
-    
-    \State //Step 5: 优化纹理
-    \State $\text{optimizeTexture}()$
-    
-    \State \Return $\text{generateLODLevels}(M)$
-\EndFunction
+    \State $M \gets \text{SimplifyAndInterpolateKeyframes}(M)$ \Comment{剔除关键帧并平滑插值}
+    \State $M \gets \text{OptimizeTextureCoordinates}(M)$ \Comment{纹理优化}
+    \State $\{M_i\} \gets \text{GenerateLODLevels}(M)$ \Comment{生成LOD层级}
+    \State \Return $\{M_i\}$
 \end{algorithmic}
 \end{algorithm}
 
@@ -351,6 +393,46 @@ P_{\text{transition}}(t) = \alpha \cdot P_i(\phi_i(t)) + (1-\alpha) \cdot P_j(\p
 
 综上所述，感知引导的自适应细分LOD算法的执行流程包含以下步骤，其伪代码实现如算法\ref{alg:perceptual-guided-adaptive-tessellation}所示：
 
+\begin{algorithm}[htbp]
+\caption{感知引导的自适应细分LOD算法}
+\label{alg:perceptual-guided-adaptive-tessellation}
+\textbf{输入}: 动画网格 $M$, 注视点位置 $gaze\_point$, 时间 $t$, \\
+\hspace*{2.4em} LOD层次 $\{L_0, L_1, L_2\}$, 偏心度阈值 $e_f, e_m$, \\
+\hspace*{2.4em} 目标细分边长 $L_{target}$ \\
+\textbf{输出}: 细分后的动画网格 $M_{tessellated}$
+\begin{algorithmic}[1]
+    \State $e_{avg} \gets \text{ComputeAverageEccentricity}(M, gaze\_point)$
+    \If{$e_{avg} \leq e_f$}
+        \State $M_{base} \gets L_0$ \Comment{选择高精度网格，适用于中心凹区域}
+    \ElsIf{$e_{avg} \leq e_m$}
+        \State $M_{base} \gets L_1$ \Comment{选择中精度网格，适用于周围区域}
+    \Else
+        \State $M_{base} \gets L_2$ \Comment{选择低精度网格，适用于外围区域}
+    \EndIf
+
+    \For{\textbf{each} edge $e_{uv} \in M_{base}$}
+        \State $\rho \gets L_{screen}(e_{uv}) / L_{target}$ \Comment{计算屏幕空间投影误差}
+        \State $TF_{geo}(e_{uv}) \gets \text{Piecewise}(\rho)$ \Comment{计算几何基准细分因子}
+        \State $\mu_{avg}(e_{uv}, t) \gets \frac{\mu(u, t) + \mu(v, t)}{2}$ 
+        \State $TF_{final}(e_{uv}, t) \gets TF_{geo}(e_{uv}) \cdot \mu_{avg}(e_{uv}, t)$ \Comment{计算最终边细分因子}
+    \EndFor
+    \State $TF_{inner} \gets \text{Average}(TF_{final})$ \Comment{计算三角形内部细分因子}
+    
+    \State $M_{tessellated} \gets \text{ExecuteTessellation}(M_{base}, TF_{final}, TF_{inner})$ \Comment{执行硬件自适应细分}
+    
+    \State $\text{InterpolateTextureCoordinates}(M_{tessellated})$
+    \For{\textbf{each} fragment in $M_{tessellated}$}
+        \State $\lambda \gets \log_2 \left( \max \left( | \nabla T_u |, | \nabla T_v | \right) \right)$ \Comment{Mipmap 选择}
+    \EndFor
+
+    \If{$\text{IsTransitioning}(i \rightarrow j)$}
+        \State $\text{processTextureTransition}()$\Comment{处理纹理过渡}
+    \EndIf
+    
+    \State \Return $M_{tessellated}$
+\end{algorithmic}
+\end{algorithm}
+
 （a）根据注视点位置选择基础LOD：算法首先计算动画网格各顶点到注视点的平均偏心度，根据平均偏心度与预设阈值$e_f$和$e_m$的比较，选择合适的基础LOD层次。若平均偏心度小于等于$e_f$，选择高精度$\text{LOD}_0$，若在$e_f$与$e_m$之间，选择中精度$\text{LOD}_1$，否则选择低精度$\text{LOD}_2$。
 
 
@@ -366,44 +448,6 @@ P_{\text{transition}}(t) = \alpha \cdot P_i(\phi_i(t)) + (1-\alpha) \cdot P_j(\p
 
 该算法通过感知引导的动态细分、LOD平滑过渡和纹理自适应处理，有效解决了传统LOD技术在注视点渲染中的视觉跳变、纹理闪烁和时空资源错配问题，实现了动画网格的高效、高质量渲染。
 
-\begin{algorithm}[h]
-\caption{感知引导的自适应细分LOD算法}
-\label{alg:perceptual-guided-adaptive-tessellation}
-\begin{algorithmic}[1]
-\Require 动画网格 $M$，注视点位置 $gaze\_point$，时间 $t$，LOD层次 $\{L_0, L_1, L_2\}$，偏心度阈值 $e_f$, $e_m$
-\Ensure 细分后的动画网格 $M_{tessellated}$
-
-\Function{\textbf{PGT-LOD}}{$M$, $gaze\_point$, $t$, $\{L_0, L_1, L_2\}$, $e_f$, $e_m$}
-    \State // Step 1: 根据注视点位置选择基础LOD
-    \If{$\exists M$}
-        \State $e_{avg} \leftarrow \text{computeAverageEccentricity}(M, gaze\_point)$
-        \If{$e_{avg} \leq e_f$}
-            \State $baseLOD \leftarrow L_0$
-        \ElsIf{$e_{avg} \leq e_m$}
-            \State $baseLOD \leftarrow L_1$
-        \Else
-            \State $baseLOD \leftarrow L_2$
-        \EndIf
-    \EndIf
-
-    \State // Step 2: 计算感知驱动的细分因子
-    \State $edgeTFs \leftarrow \text{computeEdgeTessellationFactors}(baseLOD, gaze\_point, vertexTFs)$
-
-    \State // Step 3: 执行自适应镶嵌细分
-    \State $M_{tessellated} \leftarrow \text{performAdaptiveTessellation}(baseLOD, edgeTFs)$
-
-    \State // Step 4: 处理纹理和过渡
-    \State $\text{processTextureCoordinates}(M_{tessellated})$
-    \State $\text{selectMipmapLevels}(M_{tessellated})$
-    \If{$\text{needsTransition}()$}
-        \State $\text{processLODTransition}()$
-        \State $\text{processTextureTransition}()$
-    \EndIf
-    
-    \State \Return $M_{tessellated}$
-\EndFunction
-\end{algorithmic}
-\end{algorithm}
 
 
 \section{实验设计与结果分析}
@@ -434,7 +478,7 @@ d_{H_{dyn}}(M, M') = \max_{f \in F} \left( d_H(M_f, M'_f) \right) = \max_{f \in 
 \end{equation}
 其中，$M_f$ 和 $M'_f$ 分别表示第 $f$ 帧的原始网格与简化后网格，$v$ 和 $v'$ 分别为两个网格在当前帧中的对应顶点位置。该值越小，表明简化模型在全时间序列上的几何保真度越高。
 
-时空边缘差异（STED）：传统的均方根误差仅关注顶点位置的绝对欧氏距离，往往难以反映人眼对局部结构变形和高频运动抖动的敏感性。
+时空边缘差异（Spatiotemporal Edge Difference, STED）：传统的均方根误差仅关注顶点位置的绝对欧氏距离，往往难以反映人眼对局部结构变形和高频运动抖动的敏感性。
 为此，引入由 Vasa 和 Skala 提出的 STED 指标\cite{4-3-2-2}，
 该指标通过计算局部邻域内边缘长度的空间差异与时序变化，实现与主观视觉感受的一致性度量。STED 由空间误差和时序误差两部分组成：
 
@@ -696,7 +740,7 @@ Yang AQEM（图 \ref{fig:yang_aqem}）改善了关节处的网格密度，但在
 
 \begin{table}[htbp]
 \centering
-\caption{动画网格简化核心权重参数综合消融实验结果}
+\caption{时空运动特征驱动的动画网格层次简化算法权重参数实验结果}
 \label{tab:ablation_combined}
 \renewcommand{\arraystretch}{1.5}
 \begin{tabularx}{\textwidth}{
@@ -707,19 +751,16 @@ Yang AQEM（图 \ref{fig:yang_aqem}）改善了关节处的网格密度，但在
 \textbf{参数配置组合} & $d_{H_{dyn}}$ / mm  & STED / $10^{-3} $ \\
 \midrule
 $\lambda=0, \gamma=0, \omega=\{0.33, 0.33, 0.33\}$ & 12.63 & 25.62 \\
-\midrule
-$\lambda=0.8, \gamma=0, \omega=\{0.45, 0.35, 0.20\}$ & 8.70 & 15.20 \\
-$\lambda=0, \gamma=0.5, \omega=\{0.45, 0.35, 0.20\}$ & 11.20 & 13.45 \\
-$\lambda=0.5, \gamma=0.5, \omega=\{0.45, 0.35, 0.20\}$ & 9.45 & 12.10 \\
-$\lambda=0.8, \gamma=0.2, \omega=\{0.45, 0.35, 0.20\}$ & 8.55 & 14.25 \\
-$\lambda=0.8, \gamma=0.8, \omega=\{0.45, 0.35, 0.20\}$ & 9.80 & 10.15 \\
-\midrule
-$\lambda=0.8, \gamma=0.5, \omega=\{0.33, 0.33, 0.33\}$ & 8.95 & 12.15 \\
+$\lambda=0.8, \gamma=0, \omega=\{0.45, 0.35, 0.20\}$ & 8.71 & 15.20 \\
+$\lambda=0, \gamma=0.5, \omega=\{0.45, 0.35, 0.20\}$ & 11.23 & 13.45 \\
+$\lambda=0.5, \gamma=0.5, \omega=\{0.45, 0.35, 0.20\}$ & 9.48 & 12.10 \\
+$\lambda=0.8, \gamma=0.2, \omega=\{0.45, 0.35, 0.20\}$ & 8.57 & 14.25 \\
+$\lambda=0.8, \gamma=0.8, \omega=\{0.45, 0.35, 0.20\}$ & 9.80 & 11.15 \\
+$\lambda=0.8, \gamma=0.5, \omega=\{0.33, 0.33, 0.33\}$ & 8.97 & 12.15 \\
 $\lambda=0.8, \gamma=0.5, \omega=\{0.1, 0.8, 0.1\}$ & \textbf{8.15} & 18.45 \\
-$\lambda=0.8, \gamma=0.5, \omega=\{0.8, 0.1, 0.1\}$ & 10.25 & 11.20 \\
+$\lambda=0.8, \gamma=0.5, \omega=\{0.8, 0.1, 0.1\}$ & 10.24 & 11.20 \\
 $\lambda=0.8, \gamma=0.5, \omega=\{0.35, 0.45, 0.20\}$ & 8.72 & 11.65 \\
 $\lambda=0.8, \gamma=0.5, \omega=\{0.5, 0.5, 0\}$ & 8.75 & 14.35 \\
-\midrule
 $\lambda=0.8, \gamma=0.5, \omega=\{0.45, 0.35, 0.20\}$ & 8.64 & \textbf{10.35} \\
 \bottomrule
 \end{tabularx}
@@ -735,38 +776,6 @@ $\lambda=0.8, \gamma=0.5, \omega=\{0.45, 0.35, 0.20\}$ & 8.64 & \textbf{10.35} \
 为验证本文提出的感知引导的自适应细分LOD算法（PGT-LOD）在实时VR渲染中的实际效能，实验基于 Unity 引擎构建了一个大规模风能枢纽动态场景。该场景包含 50 台高精度的风力发电机组、复杂的中央齿轮传动系统和 4km $\times$ 4km 的起伏地形，由大量复杂的动画网格构成。若不采用优化手段，应用阶段需加载全精度动画网格，将产生巨大的渲染开销，如图\ref{fig:high}所示。而采用本文提出的 PGT-LOD 算法，应用阶段只需提供对应简化后的基础动画网格，利用 GPU 的硬件镶嵌单元，根据实时的注视点位置与时空运动特征重要性，将低细节网格动态细分为感知自适应的高细节网格，从而显著减少顶点着色器处理的顶点数量，如图\ref{fig:low}所示。
 
 
-\begin{figure}[htbp]
-    \centering
-    
-    % 第一行
-    \subfloat[高精度动画网格渲染效果\label{fig:high-mesh}]{
-        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/高精度渲染.png}
-    }
-    \hfill
-    \subfloat[高精度动画网格拓扑结构 \label{fig:high-wire}]{
-        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/高精度网格工厂图.png}
-    }
-    
-    \caption{高精度动画网格渲染效果与拓扑结构}
-    \label{fig:high}
-\end{figure}
-
-
-\begin{figure}[htbp]
-    \centering
-    
-    % 第一行
-    \subfloat[低精度动画网格渲染效果\label{fig:low-mesh}]{
-        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/低精度渲染.png}
-    }
-    \hfill
-    \subfloat[低精度动画网格拓扑结构 \label{fig:low-wire}]{
-        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/低精度网格工厂图.png}
-    }
-    
-    \caption{低精度动画网格渲染效果与拓扑结构}
-    \label{fig:low}
-\end{figure}
 
 
 % \begin{figure}[htbp]
@@ -806,6 +815,40 @@ $\lambda=0.8, \gamma=0.5, \omega=\{0.45, 0.35, 0.20\}$ & 8.64 & \textbf{10.35} \
 第一组为静态距离实验组 (SD-LOD)，该组作为基准对照，采用通用的视距LOD策略。实验设定固定距离阈值 $D_1$ 与 $D_2$ 将视锥体深度划分为三个离散区间，仅依据物体与摄像机的欧氏距离加载对应层级模型。该组完全忽略注视点信息，且层级切换采用直接替换方式，未应用任何几何过渡，模拟传统VR渲染的基础状态。
 
 第二组为静态感知实验组 (SP-LOD)，该组用于评估离散注视点机制的独立收益。实验依据视偏心度 $\theta$ 将视野划分为中心凹区 ($\theta < 5^\circ$)、近周边区 ($5^\circ \le \theta < 15^\circ$) 与远周边区 ($\theta \ge 15^\circ$)，并据此匹配相应的离散LOD层级。该组未启用硬件细分功能，且沿用离散跳变机制，验证在不支持细分技术的环境下的感知策略有效性。
+
+\begin{figure}[htbp]
+    \centering
+    
+    % 第一行
+    \subfloat[高精度动画网格渲染效果\label{fig:high-mesh}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/高精度渲染.png}
+    }
+    \hfill
+    \subfloat[高精度动画网格拓扑结构 \label{fig:high-wire}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/高精度网格工厂图.png}
+    }
+    
+    \caption{高精度动画网格渲染效果与拓扑结构}
+    \label{fig:high}
+\end{figure}
+
+
+\begin{figure}[htbp]
+    \centering
+    
+    % 第一行
+    \subfloat[低精度动画网格渲染效果\label{fig:low-mesh}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/低精度渲染.png}
+    }
+    \hfill
+    \subfloat[低精度动画网格拓扑结构 \label{fig:low-wire}]{
+        \includegraphics[width=0.48\textwidth]{../figures/fourChapter/低精度网格工厂图.png}
+    }
+    
+    \caption{低精度动画网格渲染效果与拓扑结构}
+    \label{fig:low}
+\end{figure}
+
 
 第三组为本文算法实验组 (PGT-LOD)，该组完整集成了本文提出的核心方法，首先依据注视点确定基础层级，随即激活GPU镶嵌管线，调用 castleCSF-TS 模型结合时空运动特征实时计算图元细分因子，实现精度的像素级调节；同时在层级切换边界启用基于几何变形与骨骼权重插值的混合过渡算法，消除视觉突变并确保动态场景的时序连贯性。
 实验选取了两种典型的观察路径进行测试：路径 A 为用户注视点聚焦于近处高速旋转的齿轮传动机构，用于验证算法对高频运动的感知优化能力；路径 B 为用户注视点快速扫视远处的风机阵列，用于验证算法对注视点快速变化的调度响应能力。表 \ref{tab:performance_wind} 汇总了两组观察路径下各实验的整体渲染性能统计结果。
